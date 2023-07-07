@@ -93,8 +93,15 @@ def restart_back():
 
 # Запуск бэка в отдельном потоке
 def run_back():
-    check_new()
-    time.sleep(settings_bot.check_time)
+
+    try:
+        while True:
+            check_new()
+            time.sleep(settings_bot.check_time)
+            print('Отработал такт')
+    except Exception as err:
+        send_message_telegram('Бэк бота выплюнул ошибку - ' + err, settings_bot.chat_id_tg_for_errors)
+        print('Бэк бота выплюнул ошибку - ' + err, settings_bot.chat_id_tg_for_errors)
 
     return None
 
