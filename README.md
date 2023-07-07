@@ -69,3 +69,4 @@
 * oauth2client
 * gspread
 * urllib3
+* threading

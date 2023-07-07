@@ -2,6 +2,7 @@
 import settings_bot
 from func import send_message_telegram
 from datetime import datetime
+import threading
 import time
 import requests
 import urllib3
@@ -67,14 +68,60 @@ def check_new():
 # уведомление в консоль о запуске
 print('Starting....')
 
+'''
 try:
     while True:
         check_new()
         time.sleep(settings_bot.check_time)
+        print('Отработал такт')
 except Exception as err:
     send_message_telegram('Бэк бота выплюнул ошибку - ' + err, settings_bot.chat_id_tg_for_errors)
+    print('Бэк бота выплюнул ошибку - ' + err, settings_bot.chat_id_tg_for_errors)
+'''
+
+# Функция перезапуска бэка
+def restart_back():
+    # Останавливаем текущий поток
+    threading.current_thread().join()
+
+    # Запуск бота в отдельном потоке
+    bot_thread = threading.Thread(target=run_back)
+    bot_thread.start()
+
+
+    return None
+
+# Запуск бэка в отдельном потоке
+def run_back():
+    check_new()
+    time.sleep(settings_bot.check_time)
+
+    return None
+
+# Функция для проверки состояния бота и перезапуска, если требуется
+def check_bot_status():
+    try:
+            # Проверка состояния бота или выполнение других действий
+            # ...
+
+            # Если все в порядке, продолжаем выполнение
+        pass
+    except Exception as e:
+        print('Произошла ошибка бэка:', str(e))
+        print('Перезапуск бэк части бота...')
+        send_message_telegram('Произошла ошибка бэка:' + str(e), settings_bot.chat_id_tg_for_mg_alerts)
+        send_message_telegram('ерезапуск бэк части бота...', settings_bot.chat_id_tg_for_mg_alerts)
+
+        # Выполняем перезапуск бота
+        restart_back()
+    return None
 
 
 
+# Запуск бота в отдельном потоке
+back_thread = threading.Thread(target=run_back)
+back_thread.start()
 
-
+# Запуск функции проверки состояния бэка
+schedule_thread = threading.Thread(target=check_bot_status())
+schedule_thread.start()
