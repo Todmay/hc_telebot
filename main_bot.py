@@ -75,6 +75,7 @@ def handle_start_other(message):
     bot.reply_to(message, 'Привет! Это бот отвечает только на личные сообщения и требует регистрации.')
     bot.reply_to(message, 'Если вы есть в отдельной базе МГ, то регистрация пройдет автоматически.')
     bot.reply_to(message, 'Иначе вы продолите получать эти сообщения, если так, свяжитесь с представителем ОТ.')
+    bot.reply_to(message, 'Если вы точно зарегистрированы, а меню вдруг пропало, то напишите просто любой текст.')
     
     return None
 
@@ -89,9 +90,16 @@ def main_func(message):
     #####
 
     if (message.text == "Новый запрос"):
+        markup_new_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        catalog = put_req_catalog()
+        for req in catalog:
+            btn_req = types.KeyboardButton(req)
+            markup_new_req.add(btn_req)
+        btn = types.KeyboardButton("Отменить создание запроса")
+        markup_new_req.add(btn)
         bot.send_message(message.chat.id,
-                         text="Пишите, что у вас там...")
-        bot.register_next_step_handler(message, put_request)
+                         text="Сначала выберите категорию запроса", reply_markup=markup_new_req)
+        bot.register_next_step_handler(message, put_request_cat)
 
     elif (message.text == "Вернуться в главное меню") or (message.text == "Начать использовать!"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -99,7 +107,9 @@ def main_func(message):
         btn2 = types.KeyboardButton("Уточнение по запросу")
         btn3 = types.KeyboardButton("Открытые заявки")
         btn4 = types.KeyboardButton("Информация")
-        markup.add(btn1, btn2, btn3, btn4)
+        btn5 = types.KeyboardButton("Закрыть запрос")
+        btn6 = types.KeyboardButton("Мои закрытые запросы")
+        markup.add(btn1, btn2, btn3, btn4, btn5, btn6)
         bot.send_message(message.chat.id,
                          text="Привет, {0.first_name}! Рад снова видеть, что делаем?".format(message.from_user),
                          reply_markup=markup)
@@ -109,6 +119,35 @@ def main_func(message):
         btn1 = types.KeyboardButton("Вернуться в главное меню")
         bot.send_message(message.chat.id, text="Общая информация:\n"
                                                "Я помогаю связывать с ОТ, выберите Новый запрос для создания обращения", reply_markup=markup)
+
+    elif (message.text == "Закрыть запрос"):
+        markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        list_of_req = user_ask_num(message.from_user.username)
+        for req in list_of_req:
+            btn_req = types.KeyboardButton(req)
+            markup_req.add(btn_req)
+        btn = types.KeyboardButton("Вернуться в главное меню")
+        markup_req.add(btn)
+        if bool(list_of_req):
+            bot.send_message(message.chat.id, text="Выберете ваш запрос или введите число руками, закрытый запрос нельзя открыть заново, нужно будет создать новый".format(message.from_user), reply_markup=markup_req) 
+            bot.register_next_step_handler(message, close_req)
+        else:
+            bot.send_message(message.chat.id, text="У вас нет запросов сделайте новый запрос".format(message.from_user), reply_markup=markup_req) 
+
+
+    elif (message.text == "Мои закрытые запросы"):
+        markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        list_of_req = user_ask_num(message.from_user.username, False)
+        for req in list_of_req:
+            btn_req = types.KeyboardButton(req)
+            markup_req.add(btn_req)
+        btn = types.KeyboardButton("Вернуться в главное меню")
+        markup_req.add(btn)
+        if bool(list_of_req):
+            bot.send_message(message.chat.id, text="Выберете ваш запрос или введите число руками".format(message.from_user), reply_markup=markup_req) 
+            bot.register_next_step_handler(message, put_request_text_to_user)
+        else:
+            bot.send_message(message.chat.id, text="У вас нет запросов сделайте новый запрос".format(message.from_user), reply_markup=markup_req) 
 
     elif (message.text == "Уточнение по запросу"):
         markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -190,10 +229,25 @@ def register_api_token(message):
 
     return None
 
-def put_request(message):
+def put_request_cat(message):
+
+    if message.text == "Отменить создание запроса":
+        message.text = "Вернуться в главное меню"
+        main_func(message)
+        return None
+    
+    req_type = message.text
+    
+    bot.send_message(message.chat.id, text="Напишите запрос одним сообщением", reply_markup=types.ReplyKeyboardRemove())
+    bot.register_next_step_handler(message, put_request, req_type)
+
+    return None
+
+def put_request(message, req_type):
 
     now = datetime.now()
     now = now.strftime("%Y.%m.%d %H:%M")
+
 
     if len(message.text) > 1000:
         bot.send_message(message.chat.id, 'Слишком длинный запрос, сформлируйте как нибудь покороче.')
@@ -201,14 +255,12 @@ def put_request(message):
         main_func(message)
         return None
 
-
-
     values = service.spreadsheets().values().append(
         spreadsheetId=spreadsheet_id,
         range="Запросы!A1",
         valueInputOption="USER_ENTERED",
         body={
-            "values": [['id', now, now, message.from_user.id, message.from_user.username, message.chat.id, message.text, 'У: ']]
+            "values": [['id', now, now, message.from_user.id, message.from_user.username, req_type, message.text, 'У: ', '', 'нет', 'НОВЫЙ']]
         }
     ).execute()
 
@@ -224,6 +276,8 @@ def put_request(message):
             "values": [[inserted_row_number]]
         }
     ).execute()
+
+    
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton("Вернуться в главное меню")
@@ -268,12 +322,17 @@ def put_request_text_to_user(message):
         target_cell_range_ask = f"Запросы!G{target_row_index}"  
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=target_cell_range_ask).execute()
         ask = result.get('values', [])
+        target_cell_range_cat = f"Запросы!F{target_row_index}"  
+        result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=target_cell_range_cat).execute()
+        cat = result.get('values', [])
         target_cell_range_ask_2 = f"Запросы!H{target_row_index}"  
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=target_cell_range_ask_2).execute()
         target_cell_range_answer = f"Запросы!I{target_row_index}" 
         ask_2 = result.get('values', [])
         result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=target_cell_range_answer).execute() 
         answer = result.get('values', [])
+        bot.reply_to(message, f'Номер запроса - {target_row_index}')
+        bot.reply_to(message, f'Категория запроса - {cat}')
         bot.reply_to(message, f'Ваш запрос - {ask}')
         bot.reply_to(message, f'Ваше уточнение - {ask_2}')
         #bot.reply_to(message, f'Ваш запрос - {ask}')
@@ -282,6 +341,25 @@ def put_request_text_to_user(message):
     main_func(message)
 
     return None
+
+def put_req_catalog():
+
+    # Получите данные из таблицы
+    response = service.spreadsheets().values().get(
+        spreadsheetId=spreadsheet_id,
+        range="Категории!A:A"  # Обновите диапазон для соответствия вашим данным
+    ).execute()
+
+    catalog = list()
+
+    values = response.get('values', [])
+
+    for row in values:
+        catalog.append(row[0])
+
+    return catalog
+
+    
 
 
 def put_request_add_ask(message):
@@ -309,6 +387,10 @@ def put_request_add_ask(message):
     return None
 
 def save_add(message, search_number):
+
+    if message.text == "Вернуться в главное меню":
+        main_func(message)
+        return None   
 
     new_text = message.text
     now = datetime.now()
@@ -363,13 +445,25 @@ def save_add(message, search_number):
             }
         ).execute()
 
+        target_cell_range_status = f"Запросы!K{target_row_index}"
+
+        service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range=target_cell_range_status,
+            valueInputOption="USER_ENTERED",
+            body={
+                "values": [['УТОЧНЕНО']]
+            }
+        ).execute()
+
+
     
         #print(f"Ячейка {target_cell_range} успешно обновлена.")
     else:
         #print(f"Строка с числом {search_number} не найдена.")
-        bot.send_message(message.chat.id, 'Ошибка при сохранении сообщения, придется идти ногами.')
+        bot.send_message(message.chat.id, 'Лучше повторить попытку. Это же и правда осмысленно попробовать еще раз?')
 
-    bot.send_message(message.chat.id, 'Уточнение сохранено.')
+    bot.send_message(message.chat.id, f'Уточнение по заяке {search_number} сохранено.')
 
     message.text = "Вернуться в главное меню"
     main_func(message)
@@ -377,7 +471,7 @@ def save_add(message, search_number):
     return None
 
 
-def user_ask_num(username):
+def user_ask_num(username, open = True):
 
     # Задайте значение для сравнения
     compare_value = username
@@ -392,14 +486,53 @@ def user_ask_num(username):
     matching_rows = []
 
     for i, row in enumerate(values):
-        not_already_answer_ot = True
-        if len(row) > 9:
-            if (row[9]) == '1':
-                not_already_answer_ot = False
-        if row and row[4] == compare_value and not_already_answer_ot: 
+        show_req = True
+        if len(row) > 10:
+            if (row[10] == 'ЗАКРЫТ') and open:
+                show_req = False
+            elif (row[10] != 'ЗАКРЫТ') and not open:
+                show_req = False
+        else:
+            if not open: show_req = False
+        if row and row[4] == compare_value and show_req: 
             matching_rows.append(i + 1)  # Индекс строки начинается с 1
 
     return matching_rows
+
+def close_req(message):
+
+    if message.text == "Вернуться в главное меню":
+        main_func(message)
+        return None
+
+    if not message.text.isdigit:
+        bot.send_message(message.chat.id, 'В качестве номера заявки могут быть только цифры.')
+        message.text = "Вернуться в главное меню"
+        main_func(message)
+        return None
+
+    # Задайте число для поиска
+    search_number = message.text
+
+    # Обновляем значение в колонке "A" для соответствующей строки
+    service.spreadsheets().values().update(
+        spreadsheetId=spreadsheet_id,
+        range=f"Запросы!K{search_number}",
+        valueInputOption="USER_ENTERED",
+        body={
+            "values": [["ЗАКРЫТ"]]
+        }
+    ).execute()
+
+    bot.reply_to(message, 'Ваш запрос закрыт')
+
+    message.text = "Вернуться в главное меню"
+    main_func(message)
+
+
+    return None
+
+
 
 def ask_rules(message):
 

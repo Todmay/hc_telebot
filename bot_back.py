@@ -51,13 +51,14 @@ def check_new():
     num = 0
     for row in rows:
         num += 1
-        if row[9] == '0' or row[9] == 'Отправить ответ?' or row[10] == '1':
+        if row[10] == 'Статус запроса' or row[10].upper() == 'ЗАКРЫТ':
             pass
-        elif row[9] == '1' and row[10] != '1':
-            send_message_telegram(f'Ответ на вашу заявку такой - {row[8]}', int(row[3]))
-            worksheet.update_cell(num, 11, '1')
+        elif row[9].upper() == 'ДА' and row[10].upper()  != 'ЗАКРЫТ':
+            send_message_telegram(f'Ответ на вашу заявку номер {row[0]} такой - {row[8]}', int(row[3]))
+            worksheet.update_cell(num, 11, 'ЗАКРЫТ')
+            worksheet.update_cell(num, 10, 'ОТВЕТ ОТПРАВЛЕН')
         else:
-            send_message_telegram(f'Заявка пришла от {row[4]}, c текстом {row[6]}')
+            send_message_telegram(f'Заявка номер {row[0]} пришла от {row[4]}, категория запроса - {row[5]}, c текстом {row[6]} и уточнением {row[7]}')
 
         
 
