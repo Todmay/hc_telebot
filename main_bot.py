@@ -229,6 +229,23 @@ def register_api_token(message):
 
     return None
 
+def check_request_of_user(req_id, user_id):
+    check = False
+
+    response = service.spreadsheets().values().get(
+        spreadsheetId=spreadsheet_id,
+        range="Запросы!A:E"  # Обновите диапазон ИД - ник
+    ).execute()
+
+    values = response.get('values', [])
+    for i, row in enumerate(values):
+        if row and str(row[0]) == str(req_id) and str(row[3]) == str(user_id):
+            check = True
+            break
+
+    return check
+
+
 def put_request_cat(message):
 
     if message.text == "Отменить создание запроса":
@@ -297,6 +314,12 @@ def put_request_text_to_user(message):
 
     if not message.text.isdigit:
         bot.send_message(message.chat.id, 'В качестве номера заявки могут быть только цифры.')
+        message.text = "Вернуться в главное меню"
+        main_func(message)
+        return None
+
+    if not check_request_of_user(message.text, message.from_user.id):
+        bot.reply_to(message, f'Введенный номер запроса не является вашим!')
         message.text = "Вернуться в главное меню"
         main_func(message)
         return None
@@ -370,6 +393,12 @@ def put_request_add_ask(message):
 
     if not message.text.isdigit:
         bot.send_message(message.chat.id, 'В качестве номера заявки могут быть только цифры.')
+        message.text = "Вернуться в главное меню"
+        main_func(message)
+        return None
+
+    if not check_request_of_user(message.text, message.from_user.id):
+        bot.reply_to(message, f'Введенный номер запроса не является вашим!')
         message.text = "Вернуться в главное меню"
         main_func(message)
         return None
@@ -507,6 +536,12 @@ def close_req(message):
 
     if not message.text.isdigit:
         bot.send_message(message.chat.id, 'В качестве номера заявки могут быть только цифры.')
+        message.text = "Вернуться в главное меню"
+        main_func(message)
+        return None
+
+    if not check_request_of_user(message.text, message.from_user.id):
+        bot.reply_to(message, f'Введенный номер запроса не является вашим!')
         message.text = "Вернуться в главное меню"
         main_func(message)
         return None

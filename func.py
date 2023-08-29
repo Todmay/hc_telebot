@@ -88,7 +88,7 @@ def register_check(username: str):
 ################ поиск на сайте ########################
 
 import requests
-from bs4 import BeautifulSoup
+
 
 def search_text_ehp(search_text):
 
