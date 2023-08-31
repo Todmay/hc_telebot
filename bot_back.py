@@ -1,7 +1,7 @@
 
 import settings_bot
 from func import send_message_telegram
-from datetime import datetime
+from datetime import datetime, timedelta
 import threading
 import time
 import requests
@@ -10,7 +10,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 ##################### подключение к БД ######################
 import httplib2
-import apiclient
+#import apiclient
+from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
 
 # Библиотека для работы с Google Sheets API
@@ -21,7 +22,7 @@ CREDENTIALS_FILE = settings_bot.CREDENTIALS_FILE
 credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets',
                                                                                   'https://www.googleapis.com/auth/drive'])
 httpAuth = credentials.authorize(httplib2.Http())
-service = apiclient.discovery.build('sheets', 'v4', http=httpAuth)
+service = build('sheets', 'v4', http=httpAuth)
 
 
 
@@ -35,12 +36,16 @@ def check_new():
 #service = apiclient.discovery.build('sheets', 'v4', http=httpAuth)
 
     check = False
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
+    # Преобразуем дату в строку в формате "YYYY-MM-DD"
+    yesterday_str = yesterday.strftime('%Y-%m-%d')
 
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets']
     credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
     gc = gspread.authorize(credentials)
     # Открытие документа
-    sheet = gc.open('Test_table')
+    sheet = gc.open('Otdel-Tayn-bot-BD')
     # Выбор листа
     worksheet = sheet.get_worksheet(1)
 
@@ -51,7 +56,7 @@ def check_new():
     num = 0
     for row in rows:
         num += 1
-        if row[10] == 'Статус запроса' or row[10].upper() == 'ЗАКРЫТ':
+        if row[10].lower() == 'статус запроса' or row[10].upper() == 'ЗАКРЫТ':
             pass
         elif row[9].upper() == 'ДА' and row[10].upper()  != 'ЗАКРЫТ':
             send_message_telegram(f'Ответ на вашу заявку номер {row[0]} такой - {row[8]}', int(row[3]))
@@ -60,7 +65,7 @@ def check_new():
         else:
             send_message_telegram(f'Заявка номер {row[0]} пришла от {row[4]}, категория запроса - {row[5]}, c текстом {row[6]} и уточнением {row[7]}')
 
-        
+    print(f'Отработал такт, дата {today}')        
 
     return None
 
@@ -99,10 +104,10 @@ def run_back():
         while True:
             check_new()
             time.sleep(settings_bot.check_time)
-            print('Отработал такт')
     except Exception as err:
-        send_message_telegram('Бэк бота выплюнул ошибку - ' + err, settings_bot.chat_id_tg_for_errors)
-        print('Бэк бота выплюнул ошибку - ' + err, settings_bot.chat_id_tg_for_errors)
+        send_message_telegram('Бэк бота выплюнул ошибку', settings_bot.chat_id_tg_for_errors)
+        print('Бэк бота выплюнул ошибку')
+        print(str(err))
 
     return None
 
