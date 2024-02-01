@@ -25,3 +25,5 @@ chat_id_tg_for_errors = ''
 
 spreadsheet_id = '' # googlesheet id
 CREDENTIALS_FILE = ''
+
+spreadsheet_id_name = ''

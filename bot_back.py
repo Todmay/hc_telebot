@@ -17,7 +17,10 @@ from oauth2client.service_account import ServiceAccountCredentials
 # Библиотека для работы с Google Sheets API
 import gspread
 
+spreadsheet_id_name = settings_bot.spreadsheet_id_name
+
 spreadsheet_id = settings_bot.spreadsheet_id
+spreadsheet_id_name = settings_bot.spreadsheet_id_name
 CREDENTIALS_FILE = settings_bot.CREDENTIALS_FILE
 credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets',
                                                                                   'https://www.googleapis.com/auth/drive'])
@@ -45,7 +48,7 @@ def check_new():
     credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
     gc = gspread.authorize(credentials)
     # Открытие документа
-    sheet = gc.open('Otdel-Tayn-bot-BD')
+    sheet = gc.open(spreadsheet_id_name)
     # Выбор листа
     worksheet = sheet.get_worksheet(1)
 
@@ -59,7 +62,7 @@ def check_new():
         if row[10].lower() == 'статус запроса' or row[10].upper() == 'ЗАКРЫТ':
             pass
         elif row[9].upper() == 'ДА' and row[10].upper()  != 'ЗАКРЫТ':
-            send_message_telegram(f'Ответ на вашу заявку номер {row[0]} такой - {row[8]}', int(row[3]))
+            send_message_telegram(f'Ответ на вашу заявку номер {row[0]} такой: {row[8]}', int(row[3]))
             worksheet.update_cell(num, 11, 'ЗАКРЫТ')
             worksheet.update_cell(num, 10, 'ОТВЕТ ОТПРАВЛЕН')
         else:
@@ -138,3 +141,6 @@ back_thread.start()
 # Запуск функции проверки состояния бэка
 schedule_thread = threading.Thread(target=check_bot_status())
 schedule_thread.start()
+
+
+#check_new()
