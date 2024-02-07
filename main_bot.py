@@ -127,14 +127,15 @@ def main_func(message):
         btn2 = types.KeyboardButton("Детали школьных баллов")
         btn3 = types.KeyboardButton("Внести школьные баллы")
         markup.add(btn1, btn2, btn3)
-        bot.send_message(message.chat.id, text=f"Здесь вы можете посмотреть актуальные школьные баллы. \n \n {marks}".format(message.from_user), reply_markup=markup)
+        bot.send_message(message.chat.id, text=f"Здесь вы можете посмотреть актуальные школьные баллы. \n\n{marks}".format(message.from_user), reply_markup=markup)
 
     elif (message.text == "Детали школьных баллов"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn4 = types.KeyboardButton("Вернуться в главное меню")
         markup.add(btn4)
         last_five_marks = marks_read()
-        sorted_data = sorted(last_five_marks, key=lambda x: int(x[3]))
+        #sorted_data = sorted(last_five_marks, key=lambda x: int(x[3]))
+        sorted_data = sorted(last_five_marks, key=lambda x: int(x[3]) if x[3].isdigit() else float('inf'))
         output = "Последние пять изменений баллов:\n"
         for item in sorted_data:
             output += f"Номер изменения сначала года: {item[0]}, Когда: {item[1]}, Факультет: {item[2]}, Какие изменения: {item[3]}, За что: {item[4]}, Кто: {item[5]}\n"
@@ -160,8 +161,11 @@ def main_func(message):
     elif (message.text == "Информация"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn1 = types.KeyboardButton("Вернуться в главное меню")
-        bot.send_message(message.chat.id, text="Общая информация:\n"
-                                               "Я помогаю связывать с ОТ, выберите Новый запрос для создания обращения", reply_markup=markup)
+        bot.send_message(message.chat.id, text="""Общая информация об игре \n
+        Правила одним файлом - https://docs.google.com/document/d/15MHAG55Yj9iJkaWxoS0Dcc2YF5EQwEJVy8HWqVy9Qgs/edit?usp=sharing \n
+        Общие сюжетные тексты - https://docs.google.com/document/d/1EhT6-PJa28-UV4VYLXuSU-GQkko_weii3LbdS-ZjALI/edit?usp=sharing \n
+        Сетка ролей - https://joinrpg.ru/1173/roles/27647 \n
+        """, reply_markup=markup)
 
     elif (message.text == "Закрыть запрос"):
         markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -201,13 +205,13 @@ def main_func(message):
         btn = types.KeyboardButton("Вернуться в главное меню")
         markup_req.add(btn)
         if bool(list_of_req):
-            bot.send_message(message.chat.id, text="Выберите ваш запрос или введите число руками, уточнение можно добавить только по запросу, где нет ответа от ОТ".format(message.from_user), reply_markup=markup_req) 
+            bot.send_message(message.chat.id, text="Выберите ваш запрос или введите число руками, уточнение можно добавить только по запросу, где нет ответа от МГ".format(message.from_user), reply_markup=markup_req) 
             bot.register_next_step_handler(message, put_request_add_ask)
         else:
             bot.send_message(message.chat.id, text="У вас нет запросов. Сделайте новый запрос".format(message.from_user), reply_markup=markup_req) 
 
 
-    elif (message.text == "Открытые заявки"):
+    elif (message.text == "Открытые запросы"):
         markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
         list_of_req = user_ask_num(message.from_user.username)
         for req in list_of_req:
@@ -349,7 +353,7 @@ def put_request(message, req_type):
     btn1 = types.KeyboardButton("Вернуться в главное меню")
     markup.add(btn1)
     bot.send_message(message.chat.id,
-                         text=f"Вашему запросу присвоен номер {inserted_row_number}, сохраните его, если вам потребуется уточнение, ответ ОТ будет здесь же после обработки запроса.".format(message.from_user),
+                         text=f"Вашему запросу присвоен номер {inserted_row_number}, сохраните его, если вам потребуется уточнение, ответ МГ будет здесь же после обработки запроса.".format(message.from_user),
                          reply_markup=markup)
 
 
