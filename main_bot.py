@@ -39,6 +39,20 @@ service = build('sheets', 'v4', http=httpAuth)
 
 ##################### конец подключение к БД ######################
 
+############### блок констант и кнопок ##########################
+
+# Словарь для хранения состояний пользователей
+user_states = {}
+
+############### блок констант и кнопок ##########################
+
+
+############## блок навигации ####################
+
+
+
+############## блок навигации ####################
+
 
 
 # Функция для проверки, является ли сообщение личным и не требует регистрации
@@ -73,19 +87,31 @@ def is_registered_user(user, message):
 
 @bot.message_handler(commands=['start'])
 def handle_start_other(message):
-    seller_telegram_id = message.from_user.id
-    seller_telegram_name = message.from_user.username
     chat = message.chat.id
-    print(chat)
+    print(f'Новый пользователь {chat}')
     bot.reply_to(message, 'Привет! Это бот отвечает только на личные сообщения и требует регистрации.')
     bot.reply_to(message, 'Ваша регистрация пройдет автоматически, если ваш telegram аккаунт есть в вашем профиле allrpg.')
     bot.reply_to(message, 'Во время семестра для регистрации вручную обратитесь в Отдел Тайн')
     bot.reply_to(message, 'Если вы точно зарегистрированы, а меню вдруг пропало, то отправьте боту любой текст.')
+
+    if is_private_and_unregistered(message):
+        #### задаем состояние чата ####
+        user_states[message.chat.id] = "registrated"
+        #### задаем состояние чата ####
+    else:
+         bot.reply_to(message, 'В процессе регистрации возникла ошибка, свяжитесь с МГ')
+
     
     return None
 
+# обработчик не старта, строго после
+@bot.message_handler(content_types=['text'], func=lambda message: user_states.get(message.chat.id) is None)
+def handle_none(message):
+    bot.send_message(message.chat.id, f"Начните с команды /start ")
+    return None
 
-@bot.message_handler(func=is_private_and_unregistered)
+
+@bot.message_handler(content_types=['text'], func=lambda message: user_states.get(message.chat.id) == "registrated")
 def main_func(message):
 
     ##### только кнопка назад ####
