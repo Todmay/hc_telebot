@@ -16,6 +16,7 @@ from func import mark_write
 from func import marks_all
 from func import teacher_check
 from func import marks_read
+from db_sqlte import *
 
 #### файл настроек
 import settings_bot
@@ -87,17 +88,29 @@ def is_registered_user(user, message):
 
 @bot.message_handler(commands=['start'])
 def handle_start_other(message):
-    chat = message.chat.id
+    chat = int(message.chat.id)
     print(f'Новый пользователь {chat}')
-    bot.reply_to(message, 'Привет! Это бот отвечает только на личные сообщения и требует регистрации.')
-    bot.reply_to(message, 'Ваша регистрация пройдет автоматически, если ваш telegram аккаунт есть в вашем профиле allrpg.')
-    bot.reply_to(message, 'Во время семестра для регистрации вручную обратитесь в Отдел Тайн')
-    bot.reply_to(message, 'Если вы точно зарегистрированы, а меню вдруг пропало, то отправьте боту любой текст.')
+    bot.reply_to(message, 'Привет!\nЭтот бот отвечает только на личные сообщения и требует регистрации.\n\nВаша регистрация пройдет автоматически, если ваш telegram аккаунт есть в вашем профиле JoinRPG.\nДля регистрации вручную во время семестра обратитесь к МГ.\nЕсли вы точно зарегистрированы, а меню вдруг пропало, то отправьте боту любой текст.')
+
+### сначала проверяем по локальной БД ###
+
+    try:
+        if db_check_registration_in_db(chat):
+            #### задаем состояние чата ####
+            user_states[message.chat.id] = "registrated"
+            #### задаем состояние чата ####
+            message.text = "Вернуться в главное меню"
+            main_func(message)
+    except:
+        pass
 
     if is_private_and_unregistered(message):
         #### задаем состояние чата ####
         user_states[message.chat.id] = "registrated"
         #### задаем состояние чата ####
+        db_insert_user_into_db(chat)
+        message.text = "Вернуться в главное меню"
+        main_func(message)
     else:
          bot.reply_to(message, 'В процессе регистрации возникла ошибка, свяжитесь с МГ')
 
