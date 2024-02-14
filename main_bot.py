@@ -16,7 +16,7 @@ from func import mark_write
 from func import marks_all
 from func import teacher_check
 from func import marks_read
-from db_sqlte import *
+from db_sqlite import *
 
 #### файл настроек
 import settings_bot
