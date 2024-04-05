@@ -133,7 +133,7 @@ def db_get_catalog():
 def db_get_category_id(category_name):
 
     connection, cursor = connect_to_database()
-    cursor.execute("SELECT id FROM categories WHERE category_name = ?", (category_name,))
+    cursor.execute("SELECT description FROM categories WHERE category_name = ?", (category_name,))
     value = cursor.fetchone()
 
     return value

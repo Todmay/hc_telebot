@@ -3,6 +3,10 @@
 
 bot_token = ''
 
+#### токен бота баллов ####
+
+bot_faculty_points_token = ''
+
 #### ИД чата куда уведомляется МГ ####
 
 chat_id_tg_for_mg_alerts = ''

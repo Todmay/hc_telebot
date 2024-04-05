@@ -104,7 +104,7 @@ def is_registered_user(user, message):
 def handle_start_other(message):
     chat = int(message.chat.id)
     print(f'Новый пользователь {chat}')
-    bot.reply_to(message, 'Привет!\nЭтот бот отвечает только на личные сообщения и требует регистрации.\n\nВаша регистрация пройдет автоматически, если ваш telegram аккаунт есть в вашем профиле JoinRPG.\nДля регистрации вручную во время семестра обратитесь к МГ.\nЕсли вы точно зарегистрированы, а меню вдруг пропало, то отправьте боту любой текст.')
+    bot.reply_to(message, 'Привет!\nЭтот бот отвечает только на личные сообщения и требует регистрации.\n\nВаша регистрация пройдет автоматически, если ваш telegram аккаунт есть в вашем профиле JoinRPG.\nДля регистрации вручную во время семестра обратитесь к МГ.')
 
 ### сначала проверяем по локальной БД ###
 
@@ -142,10 +142,17 @@ def handle_none(message):
 @bot.message_handler(commands=['small_request'])
 def small_request(message):
 
+    if message.text == '/small_request':
+        bot.send_message(message.chat.id, text=f"После команды нужно ввести текст, а не просто пустую команду")
+        message.text = "Вернуться в главное меню"
+        main_func(message)
+        return None
+
     inserted_row_number = put_request_to_doc(message, 'БЫСТРЫЙ ЗАПРОС')
     bot.send_message(message.chat.id, text=f"Вашему запросу присвоен номер {inserted_row_number}, сохраните его, если вам потребуется уточнение, ответ МГ будет здесь же после обработки запроса.")
     message.text = "Вернуться в главное меню"
     main_func(message)
+    return None
 
 
 @bot.message_handler(content_types=['text'], func=lambda message: user_states.get(message.chat.id) == "registrated")
