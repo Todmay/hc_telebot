@@ -2,6 +2,8 @@ from datetime import datetime
 import time
 
 import settings_bot
+import db_sqlite
+from db_sqlite import *
 
 ##################### подключение к БД ######################
 import httplib2
@@ -91,6 +93,72 @@ def register_check(username: str):
 
     return check
 
+##### функция регистрации пользоватея
+
+def success_reg(message):
+
+    now = datetime.now().strftime("%Y.%m.%d %H:%M")
+    values = (now, message.from_user.id, message.from_user.username, 'Регистрация', message.text)
+
+    # Подключаемся к базе данных SQLite
+    connection, cursor = db_sqlite.connect_to_database()
+
+    # Добавляем данные в таблицу registrations
+    cursor.execute('''INSERT INTO registrations 
+                      (registration_time, telegram_id, username, registration_reason, command_used)
+                      VALUES (?, ?, ?, ?, ?)''', values)
+    connection.commit()
+
+    connection.close()
+
+    return None
+
+def failure_reg(message):
+
+    now = datetime.now().strftime("%Y.%m.%d %H:%M")
+    values = (now, message.from_user.id, message.from_user.username, 'опытка регистрации, нет в игроках', message.text)
+
+    # Подключаемся к базе данных SQLite
+    connection, cursor = db_sqlite.connect_to_database()
+
+    # Добавляем данные в таблицу registrations
+    cursor.execute('''INSERT INTO registrations 
+                      (registration_time, telegram_id, username, registration_reason, command_used)
+                      VALUES (?, ?, ?, ?, ?)''', values)
+    connection.commit()
+
+    connection.close()
+
+    return None
+
+
+def register_api_token(message):
+
+    now = datetime.now()
+    now = now.strftime("%Y.%m.%d %H:%M")
+
+   # Задайте значение для сравнения
+    telegram_username = message.from_user.username
+
+    reg_sign = register_check(telegram_username) 
+
+    if reg_sign:
+        success_reg(message)
+
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        btn1 = types.KeyboardButton("Начать использовать!")
+        markup.add(btn1)
+        bot.send_message(message.chat.id, text="Регистрация успешна!".format(message.from_user), reply_markup=markup)
+        message.text = "Информация"
+    else:
+        failure_reg(message)
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        btn1 = types.KeyboardButton("Попробовать пройти регистрацию еще раз")
+        markup.add(btn1)
+        bot.send_message(message.chat.id, text="Регистрация не удалась, так как пользователь не найден в базе ОТ".format(message.from_user), reply_markup=markup)
+
+    return None
+
 ################ обновления гугл дока ########################
 
 from oauth2client.service_account import ServiceAccountCredentials
@@ -105,7 +173,7 @@ service = build('sheets', 'v4', http=httpAuth)
 
 ### работа с баллами ###
 
-def teacher_check(username: str):
+def teacher_check_from_doc(username: str):
 
     check = False
 
@@ -125,7 +193,22 @@ def teacher_check(username: str):
 
     return check
 
-def mark_write(faculty : str, mark : int, comm : str, chat_name : str, telegram_id : str):
+def teacher_check(username: str):
+    # Подключаемся к базе данных SQLite
+    connection, cursor = db_sqlite.connect_to_database()
+
+    # Проверяем наличие преподавателя в таблице prepodavali
+    cursor.execute("SELECT COUNT(*) FROM prepodavali WHERE telegram_name = ?", (username,))
+    count = cursor.fetchone()[0]
+
+    # Если count больше 0, значит преподаватель найден
+    check = count > 0
+
+    connection.close()
+
+    return check
+
+def mark_write_to_doc(faculty : str, mark : int, comm : str, chat_name : str, telegram_id : str):
 
     now = datetime.now()
     now = now.strftime("%Y.%m.%d %H:%M")
@@ -155,7 +238,24 @@ def mark_write(faculty : str, mark : int, comm : str, chat_name : str, telegram_
 
     return None
 
-def marks_read():
+def mark_write(faculty: str, mark: int, comm: str, chat_name: str, telegram_id: str):
+    # Установка соединения с базой данных SQLite
+    connection, cursor = db_sqlite.connect_to_database()
+
+    # Получаем текущую дату и время
+    now = datetime.now()
+    date_time = now.strftime("%Y.%m.%d %H:%M")
+
+    # Вставляем новую запись в таблицу school_scores
+    cursor.execute('''INSERT INTO school_scores (date_time, house, score, reason, teacher_name, telegram_username)
+                      VALUES (?, ?, ?, ?, ?, ?)''', (date_time, faculty, mark, comm, chat_name, telegram_id))
+    connection.commit()
+
+    connection.close()
+
+    return None
+
+def marks_read_from_doc():
 
 #### 4 это страница с логом внесения
 
@@ -173,7 +273,27 @@ def marks_read():
 
     return last_five_rows
 
-def marks_all():
+
+def marks_read():
+    # Подключаемся к БД и получаем данные
+    connection, cursor = db_sqlite.connect_to_database()
+
+    # Получаем данные из таблицы school_scores
+    cursor.execute("SELECT * FROM school_scores ORDER BY id DESC LIMIT 5")  # Выбираем последние пять записей
+    rows = cursor.fetchall()
+
+    # Формируем данные аналогично функции, чтобы вернуть последние пять записей
+    last_five_rows = []
+    for row in rows:
+        row_data = list(row[:6]) + list(row[7:])  # Пропускаем столбец с ID
+        last_five_rows.append(row_data)
+
+    connection.close()
+
+    return last_five_rows
+
+
+def marks_all_from_doc():
 
     # Получаем данные из таблицы
     result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="ШкольныеБаллы").execute()
@@ -206,6 +326,46 @@ def marks_all():
     result_string = "\n".join([f"{faculty} - {score}" for faculty, score in faculty_scores.items()])
 
     return result_string  
+
+def marks_all():
+
+    # Подключаемся к БД и получаем данные
+    connection, cursor = db_sqlite.connect_to_database()
+
+    # Получаем данные из таблицы school_scores
+    cursor.execute("SELECT house, score FROM school_scores")
+    data = cursor.fetchall()
+
+    connection.close()
+
+    # Инициализируем словарь для суммирования баллов по факультетам
+    faculty_scores = {}
+
+    # Обрабатываем каждую запись в таблице
+    for row in data:
+        if len(row) >= 2:  # Проверяем, что у нас есть необходимые столбцы
+            faculty = row[0]  # Индекс столбца с факультетом
+            score = row[1]  # Индекс столбца с баллами
+
+            # Проверяем, что балл - это число
+            try:
+                score = int(score)
+
+                # Если факультет уже есть в словаре, добавляем балл
+                if faculty in faculty_scores:
+                    faculty_scores[faculty] += score
+                else:
+                    # Если факультета еще нет в словаре, создаем его и добавляем балл
+                    faculty_scores[faculty] = score
+            except ValueError:
+                # Если балл не является числом, игнорируем запись
+                pass
+
+    # Формируем строку с результатами
+    result_string = "\n".join([f"{faculty} - {score}" for faculty, score in faculty_scores.items()])
+
+    return result_string  
+
 
 ### работа с баллами ###
 

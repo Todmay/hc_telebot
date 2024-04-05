@@ -12,10 +12,10 @@ from func import register_check
 from func import register_check_ligth
 from func import search_text_ehp
 from func import send_message_telegram
-from func import mark_write
-from func import marks_all
-from func import teacher_check
-from func import marks_read
+from db_sqlite import *
+from func import success_reg
+from func import failure_reg
+import db_sqlite
 from db_sqlite import *
 
 #### файл настроек
@@ -54,6 +54,20 @@ user_states = {}
 
 ############## блок навигации ####################
 
+############## блок команд ####################
+# Список команд
+commands_list = [
+    "/start",
+    "/small_request"
+]
+
+c1 = types.BotCommand(command='small_request', description='Быстрый запрос в ОТ')
+
+bot.set_my_commands([c1])
+
+############## блок команд ####################
+
+
 
 
 # Функция для проверки, является ли сообщение личным и не требует регистрации
@@ -78,11 +92,11 @@ def is_registered_user(user, message):
 
 
     if reg_sign and not reg_sign_ligth:
-        register_api_token(message)
+        register_player(message)
     if not reg_sign: 
         message.text = "/start"
         register_api_token(message)
-        handle_start_other(message)
+        register_player(message)
 
     return reg_sign_ligth
 
@@ -101,6 +115,8 @@ def handle_start_other(message):
             #### задаем состояние чата ####
             message.text = "Вернуться в главное меню"
             main_func(message)
+
+            return None
     except:
         pass
 
@@ -123,6 +139,14 @@ def handle_none(message):
     bot.send_message(message.chat.id, f"Начните с команды /start ")
     return None
 
+@bot.message_handler(commands=['small_request'])
+def small_request(message):
+
+    inserted_row_number = put_request_to_doc(message, 'БЫСТРЫЙ ЗАПРОС')
+    bot.send_message(message.chat.id, text=f"Вашему запросу присвоен номер {inserted_row_number}, сохраните его, если вам потребуется уточнение, ответ МГ будет здесь же после обработки запроса.")
+    message.text = "Вернуться в главное меню"
+    main_func(message)
+
 
 @bot.message_handler(content_types=['text'], func=lambda message: user_states.get(message.chat.id) == "registrated")
 def main_func(message):
@@ -135,7 +159,7 @@ def main_func(message):
 
     if (message.text == "Новый запрос"):
         markup_new_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        catalog = put_req_catalog()
+        catalog = db_sqlite.db_get_catalog()
         for req in catalog:
             btn_req = types.KeyboardButton(req)
             markup_new_req.add(btn_req)
@@ -153,49 +177,10 @@ def main_func(message):
         btn4 = types.KeyboardButton("Информация")
         btn5 = types.KeyboardButton("Закрыть запрос")
         btn6 = types.KeyboardButton("Мои закрытые запросы")
-        btn7 = types.KeyboardButton("Школьные баллы")
-        markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7)
+        markup.add(btn1, btn2, btn3, btn4, btn5, btn6)
         bot.send_message(message.chat.id,
                          text="Привет, Волшебник(-ца)! Рад снова видеть, что делаем?".format(message.from_user),
                          reply_markup=markup)
-
-    elif (message.text == "Школьные баллы"):
-        marks = marks_all()
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=False,  one_time_keyboard = True)
-        btn1 = types.KeyboardButton("Вернуться в главное меню")
-        btn2 = types.KeyboardButton("Детали школьных баллов")
-        btn3 = types.KeyboardButton("Внести школьные баллы")
-        markup.add(btn1, btn2, btn3)
-        bot.send_message(message.chat.id, text=f"Здесь вы можете посмотреть актуальные школьные баллы. \n\n{marks}".format(message.from_user), reply_markup=markup)
-
-    elif (message.text == "Детали школьных баллов"):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn4 = types.KeyboardButton("Вернуться в главное меню")
-        markup.add(btn4)
-        last_five_marks = marks_read()
-        #sorted_data = sorted(last_five_marks, key=lambda x: int(x[3]))
-        sorted_data = sorted(last_five_marks, key=lambda x: int(x[3]) if x[3].isdigit() else float('inf'))
-        output = "Последние пять изменений баллов:\n"
-        for item in sorted_data:
-            output += f"Номер изменения сначала года: {item[0]}, Когда: {item[1]}, Факультет: {item[2]}, Какие изменения: {item[3]}, За что: {item[4]}, Кто: {item[5]}\n"
-        bot.send_message(message.chat.id, text=f"{output}".format(message.from_user), reply_markup=markup)
-    
-    elif (message.text == "Внести школьные баллы"):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn = types.KeyboardButton("Вернуться в главное меню")
-        markup.add(btn)
-        if (teacher_check(message.from_user.username)): 
-            btn1 = types.KeyboardButton("Гриффиндор")
-            btn2 = types.KeyboardButton("Хаффлпафф")
-            btn3 = types.KeyboardButton("Слизерин")
-            btn4 = types.KeyboardButton("Рейвенкло")
-            markup.add(btn1, btn2, btn3, btn4)
-            bot.send_message(message.chat.id, text="Выберите факультет, для которого вы хотите провести изменение текущих школьных баллов", reply_markup=markup)
-            bot.register_next_step_handler(message, mark_req_start)
-        else:
-            bot.send_message(message.chat.id, text="А вы кто такой вообще?".format(message.from_user), reply_markup=markup) 
-
-
 
     elif (message.text == "Информация"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -219,7 +204,6 @@ def main_func(message):
             bot.register_next_step_handler(message, close_req)
         else:
             bot.send_message(message.chat.id, text="У вас нет запросов. Сделайте новый запрос".format(message.from_user), reply_markup=markup_req) 
-
 
     elif (message.text == "Мои закрытые запросы"):
         markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -274,7 +258,7 @@ def main_func(message):
 
 
 ##### функция регистрации пользоватея
-def register_api_token(message):
+def register_player(message):
 
     now = datetime.now()
     now = now.strftime("%Y.%m.%d %H:%M")
@@ -285,29 +269,14 @@ def register_api_token(message):
     reg_sign = register_check(telegram_username) 
 
     if reg_sign:
-        values = service.spreadsheets().values().append(
-            spreadsheetId=spreadsheet_id,
-            range="Регистрация!A1",
-            valueInputOption="USER_ENTERED",
-            body={
-                "values": [[now, message.from_user.id, message.from_user.username, message.chat.id, 'Регистрация', message.text]]
-            }
-        ).execute()
-
+        success_reg(message)
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn1 = types.KeyboardButton("Начать использовать!")
         markup.add(btn1)
         bot.send_message(message.chat.id, text="Регистрация успешна!".format(message.from_user), reply_markup=markup)
         message.text = "Информация"
     else:
-        values = service.spreadsheets().values().append(
-            spreadsheetId=spreadsheet_id,
-            range="Регистрация!A1",
-            valueInputOption="USER_ENTERED",
-            body={
-                "values": [[now, message.from_user.id, message.from_user.username, message.chat.id, 'Попытка регистрации, нет в allrpg', message.text]]
-            }
-        ).execute()
+        failure_reg(message)
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn1 = types.KeyboardButton("Попробовать пройти регистрацию еще раз")
         markup.add(btn1)
@@ -340,7 +309,7 @@ def put_request_cat(message):
     
     req_type = message.text
 
-    mtext = get_category_value(req_type)
+    mtext = db_sqlite.db_get_category_id(req_type)
 
     if mtext:
         pass
@@ -352,17 +321,11 @@ def put_request_cat(message):
 
     return None
 
-def put_request(message, req_type):
+
+def put_request_to_doc(message, req_type):
 
     now = datetime.now()
     now = now.strftime("%Y.%m.%d %H:%M")
-
-
-    if len(message.text) > 1000:
-        bot.send_message(message.chat.id, 'Слишком длинный запрос, сформулируйте как-нибудь покороче.')
-        message.text = "Вернуться в главное меню"
-        main_func(message)
-        return None
 
     values = service.spreadsheets().values().append(
         spreadsheetId=spreadsheet_id,
@@ -386,7 +349,18 @@ def put_request(message, req_type):
         }
     ).execute()
 
-    
+    return inserted_row_number
+
+def put_request(message, req_type):
+
+
+    if len(message.text) > 1000:
+        bot.send_message(message.chat.id, 'Слишком длинный запрос, сформулируйте как-нибудь покороче.')
+        message.text = "Вернуться в главное меню"
+        main_func(message)
+        return None
+
+    inserted_row_number = put_request_to_doc(message, req_type)
 
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn1 = types.KeyboardButton("Вернуться в главное меню")
@@ -457,40 +431,6 @@ def put_request_text_to_user(message):
     main_func(message)
 
     return None
-
-def put_req_catalog():
-
-    # Получите данные из таблицы
-    response = service.spreadsheets().values().get(
-        spreadsheetId=spreadsheet_id,
-        range="Категории!A:A"  # Обновите диапазон для соответствия вашим данным
-    ).execute()
-
-    catalog = list()
-
-    values = response.get('values', [])
-
-    for row in values:
-        catalog.append(row[0])
-
-    return catalog
-
-def get_category_value(selected_category):
-    # Получите данные из таблицы
-    response = service.spreadsheets().values().get(
-        spreadsheetId=spreadsheet_id,
-        range="Категории!A:B"  # Обновите диапазон для соответствия вашим данным
-    ).execute()
-
-    values = response.get('values', [])
-
-    for row in values:
-        if row and len(row) > 1 and row[0] == selected_category:
-            return row[1]
-
-    # Если категория не найдена, вернуть None или любое другое значение по вашему выбору
-    return None
-    
 
 
 def put_request_add_ask(message):
@@ -689,72 +629,6 @@ def ask_rules(message):
                          reply_markup=markup)
 
     return None
-
-##### функционал баллов #######
-
-def mark_req_start(message):
-
-    if message.text == "Отменить создание запроса":
-        message.text = "Вернуться в главное меню"
-        main_func(message)
-        return None
-
-    faculty = message.text
-    markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn = types.KeyboardButton("Вернуться в главное меню")
-    markup_req.add(btn)
-    bot.send_message(message.chat.id, text="Напишите ваше имя, если вы хотите снять или добавить баллы. Это могут сделать только сотрудники школы или старосты. Ваше имя будет видно в истории изменения баллов.".format(message.from_user), reply_markup=markup_req) 
-    bot.register_next_step_handler(message, mark_req_step_two, faculty)
-
-    return None
-
-def mark_req_step_two(message, faculty):
-
-    if message.text == "Отменить создание запроса":
-        message.text = "Вернуться в главное меню"
-        main_func(message)
-        return None
-
-    chat_name = message.text
-    markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn = types.KeyboardButton("Вернуться в главное меню")
-    markup_req.add(btn)
-    bot.send_message(message.chat.id, text="Если вы хотите добавить баллы выбранному факультету, то знак перед числом ставить не требуется. Если вы хотите снять баллы, то поставьте знак -".format(message.from_user), reply_markup=markup_req) 
-    bot.register_next_step_handler(message, mark_req_step_three, faculty, chat_name)
-
-    return None
-
-def mark_req_step_three(message, faculty, chat_name):
-
-    if message.text == "Отменить создание запроса":
-        message.text = "Вернуться в главное меню"
-        main_func(message)
-        return None
-
-    mark = message.text
-    markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    btn = types.KeyboardButton("Вернуться в главное меню")
-    markup_req.add(btn)
-    bot.send_message(message.chat.id, text="Кратко в одном сообщении опишите причину изменения баллов. Она будет видна в истории изменения баллов".format(message.from_user), reply_markup=markup_req) 
-    bot.register_next_step_handler(message, mark_req_step_final, faculty, chat_name, mark)
-
-    return None
-
-def mark_req_step_final(message, faculty, chat_name, mark):
-
-    if message.text == "Отменить создание запроса":
-        message.text = "Вернуться в главное меню"
-        main_func(message)
-        return None
-
-    comm = message.text
-    mark_write(faculty, mark, comm, chat_name, message.from_user.username)
-    bot.send_message(message.chat.id, f"Большое спасибо! Draco dormiens nunquam titillandus! - {faculty}, {chat_name}, {mark}, {comm}")
-    message.text = "Вернуться в главное меню"
-    main_func(message)
-    
-    return None
-
 
 ############ проверки работоспособности #####################
 

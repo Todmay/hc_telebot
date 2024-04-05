@@ -133,7 +133,7 @@ def check_bot_status():
     return None
 
 
-
+'''
 # Запуск бота в отдельном потоке
 back_thread = threading.Thread(target=run_back)
 back_thread.start()
@@ -141,6 +141,6 @@ back_thread.start()
 # Запуск функции проверки состояния бэка
 schedule_thread = threading.Thread(target=check_bot_status())
 schedule_thread.start()
+'''
 
-
-#check_new()
+check_new()

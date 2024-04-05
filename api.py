@@ -2,7 +2,14 @@ from fastapi import FastAPI
 import json
 
 
+#### файл настроек
 import settings_bot
+import db_sqlite
+from db_sqlite import *
+from func import send_message_telegram
+
+import threading
+import time
 
 import httplib2
 from googleapiclient.discovery import build
@@ -29,19 +36,21 @@ def read_root():
 @app.get("/get-scores")
 def calculate_faculty_scores():
 
+    # Подключаемся к БД и получаем данные
+    connection, cursor = db_sqlite.connect_to_database()
 
-    # Получаем данные из таблицы
-    result = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range="ШкольныеБаллы").execute()
-    data = result.get('values', [])
+    # Получаем данные из таблицы school_scores
+    cursor.execute("SELECT house, score FROM school_scores")
+    data = cursor.fetchall()
 
     # Инициализируем словарь для суммирования баллов по факультетам
     faculty_scores = {}
 
     # Обрабатываем каждую запись в таблице
     for row in data:
-        if len(row) >= 4:  # Проверяем, что у нас есть необходимые столбцы
-            faculty = row[2]  # Индекс столбца с факультетом
-            score = row[3]  # Индекс столбца с баллами
+        if len(row) >= 2:  # Проверяем, что у нас есть необходимые столбцы
+            faculty = row[0]  # Индекс столбца с факультетом
+            score = row[1]  # Индекс столбца с баллами
 
             # Проверяем, что балл - это число
             try:
@@ -76,3 +85,66 @@ def calculate_faculty_scores():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8050)
+
+
+# уведомление в консоль о запуске
+print('Starting....')
+
+def start_api():
+    if __name__ == "__main__":
+        import uvicorn
+        uvicorn.run(app, host="0.0.0.0", port=8050)
+
+# Функция перезапуска бэка
+def restart_back():
+    # Останавливаем текущий поток
+    threading.current_thread().join()
+
+    # Запуск бота в отдельном потоке
+    bot_thread = threading.Thread(target=run_back)
+    bot_thread.start()
+
+
+    return None
+
+# Запуск бэка в отдельном потоке
+def run_back():
+
+    try:
+        while True:
+            start_api()
+            time.sleep(settings_bot.check_time)
+    except Exception as err:
+        send_message_telegram('АПИ бота словаил киллед', settings_bot.chat_id_tg_for_errors)
+        print('АПИ бота словаил киллед')
+        print(str(err))
+
+    return None
+
+# Функция для проверки состояния бота и перезапуска, если требуется
+def check_bot_status():
+    try:
+            # Проверка состояния бота или выполнение других действий
+            # ...
+
+            # Если все в порядке, продолжаем выполнение
+        pass
+    except Exception as e:
+        print('Произошла ошибка бэка:', str(e))
+        print('Перезапуск бэк части бота...')
+        send_message_telegram('Произошла ошибка АПИ:' + str(e), settings_bot.chat_id_tg_for_mg_alerts)
+        send_message_telegram('ерезапуск бэк части бота...', settings_bot.chat_id_tg_for_mg_alerts)
+
+        # Выполняем перезапуск бота
+        restart_back()
+    return None
+
+
+
+# Запуск бота в отдельном потоке
+back_thread = threading.Thread(target=run_back)
+back_thread.start()
+
+# Запуск функции проверки состояния бэка
+schedule_thread = threading.Thread(target=check_bot_status())
+schedule_thread.start()
