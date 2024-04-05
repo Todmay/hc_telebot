@@ -4,6 +4,8 @@ import db_sqlite
 from db_sqlite import *
 
 
+import threading
+import time
 
 
 
@@ -219,16 +221,72 @@ def sync_requests_between_db_and_sheet():
 ###### синхронизируемся только в части регистрации и в части школьных баллов, также в части категории
 ###### запросы делаем потом и отдельно!!!!!
 
+
+
+# уведомление в консоль о запуске
 print('Starting....')
-sync_registrations_to_google_sheet()
 
-sync_school_scores_to_google_sheet()
+def start_sync():
+    now = datetime.now()
+    now = now.strftime("%Y.%m.%d %H:%M")
 
-sync_categories_from_google_sheet()
+    sync_registrations_to_google_sheet()
+    sync_school_scores_to_google_sheet()
+    sync_categories_from_google_sheet()
+    sync_teachers_from_google_sheet()
+    sync_players_from_google_sheet()
+    print(f'Синхронизация завершена.... Время {now}')
+    return None
 
-sync_teachers_from_google_sheet()
+# Функция перезапуска бэка
+def restart_back():
+    # Останавливаем текущий поток
+    threading.current_thread().join()
 
-sync_players_from_google_sheet()
+    # Запуск бота в отдельном потоке
+    bot_thread = threading.Thread(target=run_back)
+    bot_thread.start()
 
-print('Синхронизация завершена....')
+
+    return None
+
+# Запуск бэка в отдельном потоке
+def run_back():
+
+    try:
+        while True:
+            start_sync()
+            time.sleep(settings_bot.check_time*0.9)
+    except Exception as err:
+        send_message_telegram('Проблема с синхронизацией базы и дока', settings_bot.chat_id_tg_for_errors)
+        print('Проблема с синхронизацией базы и дока')
+        print(str(err))
+    return None
+
+# Функция для проверки состояния бота и перезапуска, если требуется
+def check_bot_status():
+    try:
+            # Проверка состояния бота или выполнение других действий
+            # ...
+
+            # Если все в порядке, продолжаем выполнение
+        pass
+    except Exception as e:
+        print('Произошла ошибка СИНХРОНИЗАЦИИ:', str(e))
+        send_message_telegram('Произошла ошибка СИНХРОНИЗАЦИИ:' + str(e), settings_bot.chat_id_tg_for_mg_alerts)
+        send_message_telegram('Перезапуск СИНХРОНИЗАЦИИ части бота...', settings_bot.chat_id_tg_for_mg_alerts)
+
+        # Выполняем перезапуск бота
+        restart_back()
+    return None
+
+
+
+# Запуск бота в отдельном потоке
+back_thread = threading.Thread(target=run_back)
+back_thread.start()
+
+# Запуск функции проверки состояния бэка
+schedule_thread = threading.Thread(target=check_bot_status())
+schedule_thread.start()
 
