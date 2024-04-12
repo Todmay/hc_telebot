@@ -60,6 +60,18 @@ def register_check_ligth(username: str):
 
 def register_check(username: str):
 
+    char_name = db_sqlite.db_get_character_name_by_player_name(username)
+
+    if char_name:
+        check = True 
+    else:
+        check = False
+
+    return check
+
+
+def register_check_from_doc(username: str):
+
 ### для работы импортировать конфиг, два способа, использую второй
 #credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'])
 #httpAuth = credentials.authorize(httplib2.Http())
@@ -116,7 +128,7 @@ def success_reg(message):
 def failure_reg(message):
 
     now = datetime.now().strftime("%Y.%m.%d %H:%M")
-    values = (now, message.from_user.id, message.from_user.username, 'опытка регистрации, нет в игроках', message.text)
+    values = (now, message.from_user.id, message.from_user.username, 'Попытка регистрации, нет в игроках', message.text)
 
     # Подключаемся к базе данных SQLite
     connection, cursor = db_sqlite.connect_to_database()

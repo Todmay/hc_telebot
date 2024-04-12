@@ -113,10 +113,19 @@ def db_delete_last_record_from_school_scores(username):
 
 def db_get_character_name_by_player_name(player_name):
     connection, cursor = connect_to_database()
+    cursor.execute("SELECT character_name FROM prepodavali WHERE telegram_username = ?", (player_name,))
+    character_name = cursor.fetchone()[0]
+
+    return character_name
+
+def db_get_teacher_name_by_telegram_name(player_name):
+    connection, cursor = connect_to_database()
     cursor.execute("SELECT character_name FROM players WHERE telegram_username = ?", (player_name,))
     character_name = cursor.fetchone()[0]
 
     return character_name
+
+
 
 def db_get_catalog():
 

@@ -8,7 +8,7 @@ import threading
 import time
 
 
-
+from func import send_message_telegram
 import gspread
 import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
@@ -37,16 +37,62 @@ def check_matching_rows(df_db, df_sheet):
 #matching = check_matching_rows(df_db, df_sheet)
 #print(matching)
 
-def google_sheet_connect():
+def google_sheet_connect_points():
+    # Подключаемся к Google Sheets
+    spreadsheet_id = settings_bot.spreadsheet_id_points_doc
+    CREDENTIALS_FILE = settings_bot.CREDENTIALS_FILE
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'])
+    return spreadsheet_id, credentials
+
+
+def google_sheet_connect_req():
     # Подключаемся к Google Sheets
     spreadsheet_id = settings_bot.spreadsheet_id
     CREDENTIALS_FILE = settings_bot.CREDENTIALS_FILE
     credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'])
     return spreadsheet_id, credentials
 
+def sync_google_sheet_to_school_scores():
+    # Открываем нужный лист
+    spreadsheet_id, credentials = google_sheet_connect_points()
+    gc = gspread.authorize(credentials)
+    sheet = gc.open_by_key(spreadsheet_id).worksheet('ШкольныеБаллы')
+
+    # Получаем текущие данные из Google Документов
+    data_from_sheet = sheet.get_all_records()
+
+    # Подключаемся к БД и получаем данные
+    connection, cursor = connect_to_database()
+
+    # Обновляем данные в базе данных на основе данных из Google Документа
+    for row in data_from_sheet:
+        id_value = row[0]
+        date_time = row[1]
+        house = row[2]
+        score = row[3]
+        reason = row[4]
+        teacher_name = row[5]
+        telegram_username = row[6]
+
+        # Обновляем данные в базе данных
+        update_query = """
+        UPDATE school_scores
+        SET date_time=?, house=?, score=?, reason=?, teacher_name=?, telegram_username=?
+        WHERE id=?
+        """
+        cursor.execute(update_query, (date_time, house, score, reason, teacher_name, telegram_username, id_value))
+        connection.commit()
+
+    connection.close()
+
+    # а после обновляем гуглдок
+    sync_school_scores_to_google_sheet()
+
+    return None
+
 def sync_school_scores_to_google_sheet():
 
-    spreadsheet_id, credentials = google_sheet_connect()
+    spreadsheet_id, credentials = google_sheet_connect_points()
 
     gc = gspread.authorize(credentials)
     sheet = gc.open_by_key(spreadsheet_id).worksheet('ШкольныеБаллы')  # Открываем нужный лист
@@ -65,9 +111,12 @@ def sync_school_scores_to_google_sheet():
     return None
 
 def sync_registrations_to_google_sheet():
-    spreadsheet_id, credentials = google_sheet_connect()         
+    spreadsheet_id, credentials = google_sheet_connect_req()         
     gc = gspread.authorize(credentials)
     sheet = gc.open_by_key(spreadsheet_id).worksheet('Регистрация')  # Открываем нужный лист
+
+    # Очищаем лист перед записью новых данных
+    sheet.clear()
     
     # Получаем данные из таблицы "registrations" базы данных
     connection, cursor = db_sqlite.connect_to_database()
@@ -89,7 +138,7 @@ def sync_registrations_to_google_sheet():
     return None
 
 def sync_categories_from_google_sheet():
-    spreadsheet_id, credentials = google_sheet_connect()
+    spreadsheet_id, credentials = google_sheet_connect_req()
     gc = gspread.authorize(credentials)
     sheet = gc.open_by_key(spreadsheet_id).worksheet('Категории')  # Открываем нужный лист
     
@@ -119,7 +168,7 @@ def sync_categories_from_google_sheet():
     return None
 
 def sync_teachers_from_google_sheet():
-    spreadsheet_id, credentials = google_sheet_connect()
+    spreadsheet_id, credentials = google_sheet_connect_points()
     gc = gspread.authorize(credentials)
     sheet = gc.open_by_key(spreadsheet_id).worksheet('Преподаватели')  # Открываем нужный лист
     
@@ -147,7 +196,7 @@ def sync_teachers_from_google_sheet():
     return None
 
 def sync_players_from_google_sheet():
-    spreadsheet_id, credentials = google_sheet_connect()
+    spreadsheet_id, credentials = google_sheet_connect_req()
     gc = gspread.authorize(credentials)
     sheet = gc.open_by_key(spreadsheet_id).worksheet('Игроки')  # Открываем нужный лист
     
@@ -178,7 +227,7 @@ def sync_players_from_google_sheet():
 #### здесь надо обновлять и дописывать, пока её не трогаем ####
 def sync_requests_between_db_and_sheet():
     # Подключаемся к Google Sheets
-    spreadsheet_id, credentials = google_sheet_connect()
+    spreadsheet_id, credentials = google_sheet_connect_req()
     gc = gspread.authorize(credentials)
     sheet = gc.open_by_key(spreadsheet_id).worksheet('Название листа')  # Укажите название листа
     
@@ -231,7 +280,7 @@ def start_sync():
     now = now.strftime("%Y.%m.%d %H:%M")
 
     sync_registrations_to_google_sheet()
-    sync_school_scores_to_google_sheet()
+    sync_google_sheet_to_school_scores()
     sync_categories_from_google_sheet()
     sync_teachers_from_google_sheet()
     sync_players_from_google_sheet()

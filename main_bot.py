@@ -74,33 +74,33 @@ bot.set_my_commands([c1])
 def is_private_and_unregistered(message):
     return message.chat.type == 'private' and is_registered_user(message.from_user, message)
 
-
+def is_private(message):
+    return message.chat.type == 'private'
 
 # Функция для проверки, зарегистрирован ли пользователь
 def is_registered_user(user, message):
     # логика проверки регистрации пользователя
     # Верните True, если пользователь зарегистрирован, и False в противном случае
 
- ################ здесь сделать запрос в БД по реге
     try:
-        reg_sign_ligth = register_check_ligth(user.username)    
+        #reg_sign_ligth = register_check_ligth(user.username)    
         reg_sign = register_check(user.username)
     except:
         bot.reply_to(message, 'Слишком частые запросы, никак не успеть обработать, теперь придется долго ждать.')
         reg_sign = False
-        reg_sign_ligth = False
+        #reg_sign_ligth = False
 
-
+'''
     if reg_sign and not reg_sign_ligth:
         register_player(message)
     if not reg_sign: 
         message.text = "/start"
-        register_api_token(message)
         register_player(message)
+        handle_start_other(message)
+'''
+    return reg_sign
 
-    return reg_sign_ligth
-
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start'], func= is_private)
 def handle_start_other(message):
     chat = int(message.chat.id)
     print(f'Новый пользователь {chat}')
@@ -136,7 +136,7 @@ def handle_start_other(message):
 # обработчик не старта, строго после
 @bot.message_handler(content_types=['text'], func=lambda message: user_states.get(message.chat.id) is None)
 def handle_none(message):
-    bot.send_message(message.chat.id, f"Начните с команды /start ")
+    bot.send_message(message.chat.id, f"Начните с команды /start , не работает в групповых чата")
     return None
 
 @bot.message_handler(commands=['small_request'])

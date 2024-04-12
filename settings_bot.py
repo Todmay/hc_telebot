@@ -31,3 +31,7 @@ spreadsheet_id = '' # googlesheet id
 CREDENTIALS_FILE = ''
 
 spreadsheet_id_name = ''
+
+### таблица с баллами ###
+
+spreadsheet_id_points_doc = ''

@@ -71,12 +71,12 @@ commands_list = [
     "/huff_score"
 ]
 
-c1 = types.BotCommand(command='cancel_last_score_record', description='Отмени последнее начисление')
+#c1 = types.BotCommand(command='cancel_last_score_record', description='Отмени последнее начисление')
 c2 = types.BotCommand(command='grif_score', description='Добавь очков Гриффиндору')
 c3 = types.BotCommand(command='slyze_score', description='Добавь очков Слизерин')
 c4 = types.BotCommand(command='rave_score', description='Добавь очков Рейвенкло')
 c5 = types.BotCommand(command='huff_score', description='Добавь очков Хаффлпафф')
-bot.set_my_commands([c1,c2,c3,c4,c5])
+bot.set_my_commands([c2,c3,c4,c5])
 
 ############## блок команд ####################
 
@@ -96,7 +96,7 @@ def register_player(message):
         btn1 = types.KeyboardButton("Начать использовать!")
         markup.add(btn1)
         bot.send_message(message.chat.id, text="Регистрация успешна!".format(message.from_user), reply_markup=markup)
-        message.text = "Информация"
+        message.text = "Начать использовать!"
     else:
         failure_reg(message)
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -111,33 +111,24 @@ def register_player(message):
 def is_private_and_unregistered(message):
     return message.chat.type == 'private' and is_registered_user(message.from_user, message)
 
-
+def is_private(message):
+    return message.chat.type == 'private'
 
 # Функция для проверки, зарегистрирован ли пользователь
 def is_registered_user(user, message):
     # логика проверки регистрации пользователя
     # Верните True, если пользователь зарегистрирован, и False в противном случае
-
- ################ здесь сделать запрос в БД по реге
     try:
-        reg_sign_ligth = register_check_ligth(user.username)    
+        #reg_sign_ligth = register_check_ligth(user.username)    
         reg_sign = register_check(user.username)
     except:
         bot.reply_to(message, 'Слишком частые запросы, никак не успеть обработать, теперь придется долго ждать.')
         reg_sign = False
-        reg_sign_ligth = False
+        #reg_sign_ligth = False
 
+    return reg_sign
 
-    if reg_sign and not reg_sign_ligth:
-        register_player(message)
-    if not reg_sign: 
-        message.text = "/start"
-        register_player(message)
-        handle_start_other(message)
-
-    return reg_sign_ligth
-
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start'], func= is_private)
 def handle_start_other(message):
     chat = int(message.chat.id)
     print(f'Новый пользователь {chat}')
@@ -145,7 +136,24 @@ def handle_start_other(message):
 
     ### сначала проверяем по локальной БД ###
 
+
+
     try:
+        if db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username):
+            #### задаем состояние чата ####
+            user_states[message.chat.id] = "registrated"
+            #### задаем состояние чата ####
+            message.text = "Вернуться в главное меню"
+            main_func(message)
+
+            return None
+        else:
+            bot.reply_to(message, 'В процессе регистрации возникла ошибка, вас нет в списке преподавателей')
+    except:
+        pass
+
+    '''# для всех остальных пользователей временно отключено            
+
         if db_check_registration_in_db(chat):
             #### задаем состояние чата ####
             user_states[message.chat.id] = "registrated"
@@ -154,8 +162,12 @@ def handle_start_other(message):
             main_func(message)
 
             return None
-    except:
-        pass
+
+    '''
+
+
+
+    '''
 
     if is_private_and_unregistered(message):
         #### задаем состояние чата ####
@@ -165,9 +177,9 @@ def handle_start_other(message):
         message.text = "Вернуться в главное меню"
         main_func(message)
     else:
-         bot.reply_to(message, 'В процессе регистрации возникла ошибка, свяжитесь с МГ')
+        bot.reply_to(message, 'В процессе регистрации возникла ошибка, свяжитесь с МГ')
 
-    
+    '''
     return None
 
 
@@ -176,15 +188,27 @@ def handle_start_other(message):
 # обработчик не старта, строго после
 @bot.message_handler(content_types=['text'], func=lambda message: user_states.get(message.chat.id) is None)
 def handle_none(message):
-    bot.send_message(message.chat.id, f"Начните с команды /start ")
+    bot.send_message(message.chat.id, f"Начните с команды /start , не работает в групповых чатах")
     return None
 
 
 @bot.message_handler(commands=['cancel_last_score_record'])
 def cancel_record(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = types.KeyboardButton("ДА")        
+    btn2 = types.KeyboardButton("НЕТ")
+    markup.add(btn1, btn2)
+    bot.send_message(message.chat.id, text="Вы уверены что хотите отменить свое прошлое начисление?".format(message.from_user), reply_markup=markup) 
+    bot.register_next_step_handler(message, cancel_record_end)
 
-    text = db_delete_last_record_from_school_scores(message.from_user.username)
-    bot.send_message(message.chat.id, text=text)
+def cancel_record_end(message):
+
+    if message.text == 'ДА':
+        text = db_delete_last_record_from_school_scores(message.from_user.username)
+        bot.send_message(message.chat.id, text=text)
+    else:
+        pass
+
     message.text = "Вернуться в главное меню"
     main_func(message)
 
@@ -195,19 +219,23 @@ def grif_score(message):
     try:
         # Разбиваем текст сообщения на части по пробелу
         command_parts = message.text.split()
+        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
         
         # Проверяем, что команда имеет три части: /команда число сообщение
         if len(command_parts) == 3:
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
-            text = command_parts[2]
-            chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+            text = command_parts[2]            
 
             print(number, text, chat_name)
 
             mark_write('Гриффиндор', number, text, chat_name, message.from_user.username)        
             # Отправляем ответное сообщение в чат
             bot.reply_to(message, f"Число баллов добавлено Гриффиндору: {number}\nСообщение: {text}")
+        elif len(command_parts) == 2 and command_parts[1].isdigit():
+            number = int(command_parts[1])
+            mark_write('Гриффиндор', number, 'ПУСТО', chat_name, message.from_user.username) 
+            bot.reply_to(message, f"Число баллов добавлено Гриффиндору: {number}\nСообщения нет")
         else:
             bot.reply_to(message, "Неверный формат команды. Используйте /команда число сообщение")
     except ValueError:
@@ -221,19 +249,24 @@ def slyze_score(message):
     try:
         # Разбиваем текст сообщения на части по пробелу
         command_parts = message.text.split()
+        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
         
         # Проверяем, что команда имеет три части: /команда число сообщение
         if len(command_parts) == 3:
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
             text = command_parts[2]
-            chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
-
+            
             print(number, text, chat_name)
 
             mark_write('Слизерин', number, text, chat_name, message.from_user.username)        
             # Отправляем ответное сообщение в чат
             bot.reply_to(message, f"Число баллов добавлено Слизерин: {number}\nСообщение: {text}")
+        elif len(command_parts) == 2 and command_parts[1].isdigit():
+            number = int(command_parts[1])
+            mark_write('Слизерин', number, 'ПУСТО', chat_name, message.from_user.username) 
+            bot.reply_to(message, f"Число баллов добавлено Слизерин: {number}\nСообщения нет")
+
         else:
             bot.reply_to(message, "Неверный формат команды. Используйте /команда число сообщение")
     except ValueError:
@@ -247,19 +280,24 @@ def rave_score(message):
     try:
         # Разбиваем текст сообщения на части по пробелу
         command_parts = message.text.split()
+        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
         
         # Проверяем, что команда имеет три части: /команда число сообщение
         if len(command_parts) == 3:
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
             text = command_parts[2]
-            chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+
 
             print(number, text, chat_name)
 
             mark_write('Рейвенкло', number, text, chat_name, message.from_user.username)        
             # Отправляем ответное сообщение в чат
             bot.reply_to(message, f"Число баллов добавлено Рейвенкло: {number}\nСообщение: {text}")
+        elif len(command_parts) == 2 and command_parts[1].isdigit():
+            number = int(command_parts[1])
+            mark_write('Рейвенкло', number, 'ПУСТО', chat_name, message.from_user.username) 
+            bot.reply_to(message, f"Число баллов добавлено Рейвенкло: {number}\nСообщения нет")
         else:
             bot.reply_to(message, "Неверный формат команды. Используйте /команда число сообщение")
     except ValueError:
@@ -273,19 +311,24 @@ def huff_score(message):
     try:
         # Разбиваем текст сообщения на части по пробелу
         command_parts = message.text.split()
+        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
         
         # Проверяем, что команда имеет три части: /команда число сообщение
         if len(command_parts) == 3:
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
             text = command_parts[2]
-            chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+            
 
             print(number, text, chat_name)
 
             mark_write('Хаффлпафф', number, text, chat_name, message.from_user.username)        
             # Отправляем ответное сообщение в чат
             bot.reply_to(message, f"Число баллов добавлено Хаффлпафф: {number}\nСообщение: {text}")
+        elif len(command_parts) == 2 and command_parts[1].isdigit():
+            number = int(command_parts[1])
+            mark_write('Рейвенкло', number, 'ПУСТО', chat_name, message.from_user.username) 
+            bot.reply_to(message, f"Число баллов добавлено Рейвенкло: {number}\nСообщения нет")
         else:
             bot.reply_to(message, "Неверный формат команды. Используйте /команда число сообщение")
     except ValueError:
@@ -310,21 +353,39 @@ def main_func(message):
 
     if (message.text == "Вернуться в главное меню") or (message.text == "Начать использовать!"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn4 = types.KeyboardButton("Информация")
-        btn7 = types.KeyboardButton("Школьные баллы")
-        markup.add(btn4, btn7)
+        btn1 = types.KeyboardButton("Гриффиндор")        
+        btn2 = types.KeyboardButton("Хаффлпафф")
+        btn3 = types.KeyboardButton("Слизерин")
+        btn4 = types.KeyboardButton("Рейвенкло")
+        btn5 = types.KeyboardButton("Отменить мое последнее начисление")
+        btn6 = types.KeyboardButton("Детали школьных баллов")
+        markup.add(btn1, btn2, btn3, btn4, btn5, btn6)
         bot.send_message(message.chat.id,
                          text="Привет, Волшебник(-ца)! Рад снова видеть, что делаем?".format(message.from_user),
                          reply_markup=markup)
-
-    elif (message.text == "Школьные баллы"):
-        marks = marks_all()
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=False,  one_time_keyboard = True)
-        btn1 = types.KeyboardButton("Вернуться в главное меню")
-        btn2 = types.KeyboardButton("Детали школьных баллов")
-        btn3 = types.KeyboardButton("Внести школьные баллы")
-        markup.add(btn1, btn2, btn3)
-        bot.send_message(message.chat.id, text=f"Здесь вы можете посмотреть актуальные школьные баллы. \n\n{marks}".format(message.from_user), reply_markup=markup)
+    elif (message.text == "Гриффиндор"):
+        faculty = "Гриффиндор"
+        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        bot.send_message(message.chat.id, text="Если вы хотите добавить баллы выбранному факультету, то знак перед числом ставить не требуется. Если вы хотите снять баллы, то поставьте знак -".format(message.from_user), reply_markup=markup_back) 
+        bot.register_next_step_handler(message, mark_req_step_three, faculty, chat_name)
+    elif (message.text == "Хаффлпафф"):
+        faculty = "Хаффлпафф"
+        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        bot.send_message(message.chat.id, text="Если вы хотите добавить баллы выбранному факультету, то знак перед числом ставить не требуется. Если вы хотите снять баллы, то поставьте знак -".format(message.from_user), reply_markup=markup_back) 
+        bot.register_next_step_handler(message, mark_req_step_three, faculty, chat_name)
+    elif (message.text == "Слизерин"):
+        faculty = "Слизерин"
+        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        bot.send_message(message.chat.id, text="Если вы хотите добавить баллы выбранному факультету, то знак перед числом ставить не требуется. Если вы хотите снять баллы, то поставьте знак -".format(message.from_user), reply_markup=markup_back) 
+        bot.register_next_step_handler(message, mark_req_step_three, faculty, chat_name)
+    elif (message.text == "Слизерин"):
+        faculty = "Слизерин"
+        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        bot.send_message(message.chat.id, text="Если вы хотите добавить баллы выбранному факультету, то знак перед числом ставить не требуется. Если вы хотите снять баллы, то поставьте знак -".format(message.from_user), reply_markup=markup_back) 
+        bot.register_next_step_handler(message, mark_req_step_three, faculty, chat_name)
+    
+    elif (message.text == "Отменить мое последнее начисление"):
+        cancel_record(message)
 
     elif (message.text == "Детали школьных баллов"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -337,32 +398,10 @@ def main_func(message):
         for item in sorted_data:
             output += f"Номер изменения сначала года: {item[0]}, Когда: {item[1]}, Факультет: {item[2]}, Какие изменения: {item[3]}, За что: {item[4]}, Кто: {item[5]}\n"
         bot.send_message(message.chat.id, text=f"{output}".format(message.from_user), reply_markup=markup)
+        url_doc = 'https://docs.google.com/spreadsheets/d/1RSlOpb93ngc3Iwmk2L335xokX95HSVsztUBsFmCHLNo/edit?usp=sharing'
+        bot.send_message(message.chat.id, text=f"Более подробно смотри в документе {url_doc}".format(message.from_user), reply_markup=markup)
+
     
-    elif (message.text == "Внести школьные баллы"):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn = types.KeyboardButton("Вернуться в главное меню")
-        markup.add(btn)
-        if (teacher_check(message.from_user.username)): 
-            btn1 = types.KeyboardButton("Гриффиндор")
-            btn2 = types.KeyboardButton("Хаффлпафф")
-            btn3 = types.KeyboardButton("Слизерин")
-            btn4 = types.KeyboardButton("Рейвенкло")
-            markup.add(btn1, btn2, btn3, btn4)
-            bot.send_message(message.chat.id, text="Выберите факультет, для которого вы хотите провести изменение текущих школьных баллов", reply_markup=markup)
-            bot.register_next_step_handler(message, mark_req_start)
-        else:
-            bot.send_message(message.chat.id, text="А вы кто такой вообще?".format(message.from_user), reply_markup=markup) 
-
-    elif (message.text == "Информация"):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn1 = types.KeyboardButton("Вернуться в главное меню")
-        bot.send_message(message.chat.id, text="""Общая информация об игре \n
-        Правила одним файлом - https://docs.google.com/document/d/15MHAG55Yj9iJkaWxoS0Dcc2YF5EQwEJVy8HWqVy9Qgs/edit?usp=sharing \n
-        Общие сюжетные тексты - https://docs.google.com/document/d/1EhT6-PJa28-UV4VYLXuSU-GQkko_weii3LbdS-ZjALI/edit?usp=sharing \n
-        Сетка ролей - https://joinrpg.ru/1173/roles/27647 \n
-        """, reply_markup=markup)
-
-####
     else:
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn4 = types.KeyboardButton("Вернуться в главное меню")
@@ -371,7 +410,7 @@ def main_func(message):
 
 ##### функционал баллов #######
 
-def mark_req_start(message, faculty):
+def mark_req_start(message):
     
 
 
