@@ -231,7 +231,7 @@ def sync_players_from_google_sheet():
 
 def sync_google_sheet_to_roles():
     # Подключаемся к Google Документам
-    spreadsheet_id, credentials = google_sheet_connect_req()
+    spreadsheet_id, credentials = google_sheet_connect_points()
     gc = gspread.authorize(credentials)
     sheet_name = 'РолиБаллы'  # Название листа с данными
     worksheet = gc.open_by_key(spreadsheet_id).worksheet(sheet_name)

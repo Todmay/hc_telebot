@@ -193,7 +193,7 @@ def db_get_teacher_name_by_telegram_name(player_name):
 
 def db_get_teacher_role_by_telegram_name(player_name):
     connection, cursor = connect_to_database()
-    cursor.execute("SELECT role_name FROM players WHERE telegram_username = ?", (player_name,))
+    cursor.execute("SELECT role_name FROM prepodavali WHERE telegram_name = ?", (player_name,))
     role_name = cursor.fetchone()[0]
 
     return role_name
