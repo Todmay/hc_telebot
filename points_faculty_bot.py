@@ -18,6 +18,7 @@ from func import teacher_check
 from func import marks_read
 from func import success_reg
 from func import failure_reg
+from func import validate_any_int
 import db_sqlite
 from db_sqlite import *
 
@@ -105,6 +106,23 @@ def register_player(message):
         bot.send_message(message.chat.id, text="Регистрация не удалась, так как пользователь не найден в базе ОТ".format(message.from_user), reply_markup=markup)
 
     return None
+
+## функция проверки оценки 
+
+def check_num_mark(message, mark):
+
+
+    role_name = db_sqlite.db_get_teacher_role_by_telegram_name(message.from_user.username)
+    from_value = db_sqlite.db_get_teacher_from_value_by_role(role_name)
+    to_value = db_sqlite.db_get_teacher_to_value_by_role(role_name)
+
+    if mark < from_value or mark > to_value:
+        bot.reply_to(message, 'Твои баллы не соответствуют твоей роли, укажи верно или я донесу куда надо')
+        return True
+    else:
+        return False
+
+
 
 
 # Функция для проверки, является ли сообщение личным и не требует регистрации
@@ -225,6 +243,11 @@ def grif_score(message):
         if len(command_parts) == 3:
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
+            if check_num_mark(message, number):
+                message.text = "Вернуться в главное меню"
+                main_func(message)
+                return None
+
             text = command_parts[2]            
 
             print(number, text, chat_name)
@@ -234,6 +257,10 @@ def grif_score(message):
             bot.reply_to(message, f"Число баллов добавлено Гриффиндору: {number}\nСообщение: {text}")
         elif len(command_parts) == 2 and command_parts[1].isdigit():
             number = int(command_parts[1])
+            if check_num_mark(message, number):
+                message.text = "Вернуться в главное меню"
+                main_func(message)
+                return None
             mark_write('Гриффиндор', number, 'ПУСТО', chat_name, message.from_user.username) 
             bot.reply_to(message, f"Число баллов добавлено Гриффиндору: {number}\nСообщения нет")
         else:
@@ -256,6 +283,10 @@ def slyze_score(message):
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
             text = command_parts[2]
+            if check_num_mark(message, number):
+                message.text = "Вернуться в главное меню"
+                main_func(message)
+                return None
             
             print(number, text, chat_name)
 
@@ -264,6 +295,10 @@ def slyze_score(message):
             bot.reply_to(message, f"Число баллов добавлено Слизерин: {number}\nСообщение: {text}")
         elif len(command_parts) == 2 and command_parts[1].isdigit():
             number = int(command_parts[1])
+            if check_num_mark(message, number):
+                message.text = "Вернуться в главное меню"
+                main_func(message)
+                return None
             mark_write('Слизерин', number, 'ПУСТО', chat_name, message.from_user.username) 
             bot.reply_to(message, f"Число баллов добавлено Слизерин: {number}\nСообщения нет")
 
@@ -287,7 +322,10 @@ def rave_score(message):
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
             text = command_parts[2]
-
+            if check_num_mark(message, number):
+                message.text = "Вернуться в главное меню"
+                main_func(message)
+                return None
 
             print(number, text, chat_name)
 
@@ -296,6 +334,10 @@ def rave_score(message):
             bot.reply_to(message, f"Число баллов добавлено Рейвенкло: {number}\nСообщение: {text}")
         elif len(command_parts) == 2 and command_parts[1].isdigit():
             number = int(command_parts[1])
+            if check_num_mark(message, number):
+                message.text = "Вернуться в главное меню"
+                main_func(message)
+                return None
             mark_write('Рейвенкло', number, 'ПУСТО', chat_name, message.from_user.username) 
             bot.reply_to(message, f"Число баллов добавлено Рейвенкло: {number}\nСообщения нет")
         else:
@@ -318,7 +360,10 @@ def huff_score(message):
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
             text = command_parts[2]
-            
+            if check_num_mark(message, number):
+                message.text = "Вернуться в главное меню"
+                main_func(message)
+                return None            
 
             print(number, text, chat_name)
 
@@ -327,6 +372,10 @@ def huff_score(message):
             bot.reply_to(message, f"Число баллов добавлено Хаффлпафф: {number}\nСообщение: {text}")
         elif len(command_parts) == 2 and command_parts[1].isdigit():
             number = int(command_parts[1])
+            if check_num_mark(message, number):
+                message.text = "Вернуться в главное меню"
+                main_func(message)
+                return None
             mark_write('Рейвенкло', number, 'ПУСТО', chat_name, message.from_user.username) 
             bot.reply_to(message, f"Число баллов добавлено Рейвенкло: {number}\nСообщения нет")
         else:
@@ -348,21 +397,33 @@ def main_func(message):
     #####
     #bot.set_chat_menu_button(message.chat.id, types.MenuButtonCommands('commands'))
 
+    role_name = db_sqlite.db_get_teacher_role_by_telegram_name(message.from_user.username)
+    markup_main = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn1 = types.KeyboardButton("Гриффиндор")        
+    btn2 = types.KeyboardButton("Хаффлпафф")
+    btn3 = types.KeyboardButton("Слизерин")
+    btn4 = types.KeyboardButton("Рейвенкло")
+    btn5 = types.KeyboardButton("Отменить мое последнее начисление")
+    btn6 = types.KeyboardButton("Детали школьных баллов")
+    btn7 = types.KeyboardButton("Включить колбы")
+    btn8 = types.KeyboardButton("ВЫКЛЮЧИТЬ колбы")
+    param = db_sqlite.db_get_show_points_setting()
+
+    if role_name == 'Директор' or role_name == 'Помощник директора':
+        if param == 1:
+            markup_main.add(btn1, btn2, btn3, btn4, btn5, btn6, btn8)
+        else:
+            markup_main.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7)
+    else:
+        markup_main.add(btn1, btn2, btn3, btn4, btn5, btn6)
+
     # Создаем клавиатуру для меню
     keyboard = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
 
     if (message.text == "Вернуться в главное меню") or (message.text == "Начать использовать!"):
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        btn1 = types.KeyboardButton("Гриффиндор")        
-        btn2 = types.KeyboardButton("Хаффлпафф")
-        btn3 = types.KeyboardButton("Слизерин")
-        btn4 = types.KeyboardButton("Рейвенкло")
-        btn5 = types.KeyboardButton("Отменить мое последнее начисление")
-        btn6 = types.KeyboardButton("Детали школьных баллов")
-        markup.add(btn1, btn2, btn3, btn4, btn5, btn6)
         bot.send_message(message.chat.id,
                          text="Привет, Волшебник(-ца)! Рад снова видеть, что делаем?".format(message.from_user),
-                         reply_markup=markup)
+                         reply_markup=markup_main)
     elif (message.text == "Гриффиндор"):
         faculty = "Гриффиндор"
         chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
@@ -386,6 +447,14 @@ def main_func(message):
     
     elif (message.text == "Отменить мое последнее начисление"):
         cancel_record(message)
+
+    elif (message.text == "Включить колбы"):
+        db_sqlite.db_set_show_points_to_one()
+        bot.send_message(message.chat.id, text=f"Колбы включены! Обновление значений произойдет в ближайший такт".format(message.from_user), reply_markup=markup_main)
+
+    elif (message.text == "ВЫКЛЮЧИТЬ колбы"):
+        db_sqlite.db_set_show_points_to_zero()
+        bot.send_message(message.chat.id, text=f"Колбы ВЫКЛЮЧЕНЫ! Следующее обновление по АПИ не будет получено колбами".format(message.from_user), reply_markup=markup_main)
 
     elif (message.text == "Детали школьных баллов"):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -411,9 +480,6 @@ def main_func(message):
 ##### функционал баллов #######
 
 def mark_req_start(message):
-    
-
-
     if message.text == "Отменить создание запроса":
         message.text = "Вернуться в главное меню"
         main_func(message)
@@ -436,7 +502,17 @@ def mark_req_step_three(message, faculty, chat_name):
         main_func(message)
         return None
 
+    if not validate_any_int(message.text):
+        bot.reply_to(message, 'Надо вводить ЧИСЛО')
+        message.text = "Вернуться в главное меню"
+        main_func(message)
+        return None
+
     mark = message.text
+    if check_num_mark(message, int(mark)):
+        message.text = "Вернуться в главное меню"
+        main_func(message)
+        return None
     markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn = types.KeyboardButton("Вернуться в главное меню")
     markup_req.add(btn)

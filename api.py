@@ -66,6 +66,9 @@ def calculate_faculty_scores():
                 # Если балл не является числом, игнорируем запись
                 pass
 
+    # Добавляем переменную ShowPoints
+    ShowPointsParam = db_sqlite.db_get_show_points_setting()
+    faculty_scores["ShowPoints"] = ShowPointsParam
 
 
     # Формируем словарь с результатами

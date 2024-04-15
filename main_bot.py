@@ -90,21 +90,13 @@ def is_registered_user(user, message):
         reg_sign = False
         #reg_sign_ligth = False
 
-'''
-    if reg_sign and not reg_sign_ligth:
-        register_player(message)
-    if not reg_sign: 
-        message.text = "/start"
-        register_player(message)
-        handle_start_other(message)
-'''
     return reg_sign
 
 @bot.message_handler(commands=['start'], func= is_private)
 def handle_start_other(message):
     chat = int(message.chat.id)
     print(f'Новый пользователь {chat}')
-    bot.reply_to(message, 'Привет!\nЭтот бот отвечает только на личные сообщения и требует регистрации.\n\nВаша регистрация пройдет автоматически, если ваш telegram аккаунт есть в вашем профиле JoinRPG.\nДля регистрации вручную во время семестра обратитесь к МГ.')
+    bot.reply_to(message, 'Привет!\nЭтот бот отвечает только на личные сообщения и требует регистрации.\n\nВаша регистрация пройдет автоматически, если ваш telegram аккаунт есть в вашем профиле JoinRPG.\nДля регистрации вручную во время семестра обратитесь к ОТ.')
 
 ### сначала проверяем по локальной БД ###
 
@@ -128,7 +120,7 @@ def handle_start_other(message):
         message.text = "Вернуться в главное меню"
         main_func(message)
     else:
-         bot.reply_to(message, 'В процессе регистрации возникла ошибка, свяжитесь с МГ')
+         bot.reply_to(message, 'В процессе регистрации возникла ошибка, свяжитесь с ОТ')
 
     
     return None
@@ -149,7 +141,7 @@ def small_request(message):
         return None
 
     inserted_row_number = put_request_to_doc(message, 'БЫСТРЫЙ ЗАПРОС')
-    bot.send_message(message.chat.id, text=f"Вашему запросу присвоен номер {inserted_row_number}, сохраните его, если вам потребуется уточнение, ответ МГ будет здесь же после обработки запроса.")
+    bot.send_message(message.chat.id, text=f"Вашему запросу присвоен номер {inserted_row_number}, сохраните его, если вам потребуется уточнение, ответ ОТ будет здесь же после обработки запроса.")
     message.text = "Вернуться в главное меню"
     main_func(message)
     return None
@@ -193,9 +185,7 @@ def main_func(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         btn1 = types.KeyboardButton("Вернуться в главное меню")
         bot.send_message(message.chat.id, text="""Общая информация об игре \n
-        Правила одним файлом - https://docs.google.com/document/d/15MHAG55Yj9iJkaWxoS0Dcc2YF5EQwEJVy8HWqVy9Qgs/edit?usp=sharing \n
-        Общие сюжетные тексты - https://docs.google.com/document/d/1EhT6-PJa28-UV4VYLXuSU-GQkko_weii3LbdS-ZjALI/edit?usp=sharing \n
-        Сетка ролей - https://joinrpg.ru/1173/roles/27647 \n
+        Группа - https://vk.com/study_seasons \n
         """, reply_markup=markup)
 
     elif (message.text == "Закрыть запрос"):
@@ -235,7 +225,7 @@ def main_func(message):
         btn = types.KeyboardButton("Вернуться в главное меню")
         markup_req.add(btn)
         if bool(list_of_req):
-            bot.send_message(message.chat.id, text="Выберите ваш запрос или введите число руками, уточнение можно добавить только по запросу, где нет ответа от МГ".format(message.from_user), reply_markup=markup_req) 
+            bot.send_message(message.chat.id, text="Выберите ваш запрос или введите число руками, уточнение можно добавить только по запросу, где нет ответа от ОТ".format(message.from_user), reply_markup=markup_req) 
             bot.register_next_step_handler(message, put_request_add_ask)
         else:
             bot.send_message(message.chat.id, text="У вас нет запросов. Сделайте новый запрос".format(message.from_user), reply_markup=markup_req) 
@@ -373,7 +363,7 @@ def put_request(message, req_type):
     btn1 = types.KeyboardButton("Вернуться в главное меню")
     markup.add(btn1)
     bot.send_message(message.chat.id,
-                         text=f"Вашему запросу присвоен номер {inserted_row_number}, сохраните его, если вам потребуется уточнение, ответ МГ будет здесь же после обработки запроса.".format(message.from_user),
+                         text=f"Вашему запросу присвоен номер {inserted_row_number}, сохраните его, если вам потребуется уточнение, ответ ОТ будет здесь же после обработки запроса.".format(message.from_user),
                          reply_markup=markup)
 
 

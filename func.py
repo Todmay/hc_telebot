@@ -26,6 +26,43 @@ httpAuth = credentials.authorize(httplib2.Http())
 service = build('sheets', 'v4', http=httpAuth)
 
 
+
+def validate_phone_number(phone_number):
+    # Шаблон для распознавания номера телефона
+    pattern = re.compile(r'^\+?\d{1,3}[-. ]?\(?\d{2,3}\)?[-. ]?\d{3}[-. ]?\d{2,3}[-. ]?\d{2,3}$')
+    # Проверка соответствия шаблону
+    if pattern.match(phone_number):
+        return True
+    else:
+        return False
+
+
+def validate_telegram_username(username):
+    # Шаблон для распознавания имени пользователя в Telegram
+    pattern = re.compile(r'^@([A-Za-z0-9_]{5,32})$')
+    # Проверка соответствия шаблону
+    if pattern.match(username):
+        return True
+    else:
+        return False
+
+def validate_telegram_id(telegram_id):
+    # Шаблон для распознавания Telegram ID (цифры без символа @)
+    pattern = re.compile(r'^\d+$')
+    # Проверка соответствия шаблону
+    if pattern.match(telegram_id):
+        return True
+    else:
+        return False
+
+def validate_any_int(idd):
+    try:
+        idd = int(idd)
+        return True
+    except:
+        return False
+
+
 def send_message_telegram(text, chat_id = settings_bot.chat_id_tg_for_mg_alerts):
     # Добавляем заголовки для обхода защиты от ДДОС
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'}

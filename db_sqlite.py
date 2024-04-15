@@ -39,7 +39,14 @@ def create_all_table():
     cursor.execute('''CREATE TABLE IF NOT EXISTS prepodavali
                       (id INTEGER PRIMARY KEY AUTOINCREMENT,
                        telegram_name TEXT,
-                       character_name TEXT)''')
+                       character_name TEXT,
+                       role_name TEXT)''')
+
+    cursor.execute('''CREATE TABLE IF NOT EXISTS roles
+                      (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                       role_name TEXT,
+                       from_value INTEGER,
+                       to_value INTEGER)''')
 
     cursor.execute('''CREATE TABLE IF NOT EXISTS school_scores
                       (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,9 +93,68 @@ def create_all_table():
                         command_used TEXT
                     )''')
 
+    # Создаем таблицу настроек, если она не существует
+    cursor.execute('''CREATE TABLE IF NOT EXISTS Settings (
+                        id INTEGER PRIMARY KEY,
+                        setting_name TEXT UNIQUE,
+                        value INTEGER
+                     )''')
+
+    # Проверяем, существует ли уже запись для переменной ShowPoints
+    cursor.execute("SELECT * FROM Settings WHERE setting_name = ?", ('ShowPoints',))
+    existing_setting = cursor.fetchone()
+
+    # Если записи нет, добавляем значение по умолчанию (1) для переменной ShowPoints
+    if not existing_setting:
+        cursor.execute("INSERT INTO Settings (setting_name, value) VALUES (?, ?)", ('ShowPoints', 1))
+        connection.commit()
+        print("Значение переменной ShowPoints установлено по умолчанию (1).")
+    else:
+        print("Значение переменной ShowPoints уже установлено в базе данных.")
 
     connection.commit()
     connection.close()
+
+def db_get_show_points_setting():
+    conn, cursor = connect_to_database()
+    try:
+        # Получаем значение переменной ShowPoints из таблицы Settings
+        cursor.execute("SELECT value FROM Settings WHERE setting_name = ?", ('ShowPoints',))
+        setting_value = cursor.fetchone()
+        if setting_value:
+            return setting_value[0]  # Возвращаем значение переменной ShowPoints
+        else:
+            print("Значение переменной ShowPoints не найдено.")
+            return None
+    except sqlite3.Error as e:
+        print(f"Ошибка при получении значения переменной ShowPoints: {e}")
+        return None
+    finally:
+        # Закрываем соединение с базой данных
+        conn.close()
+
+
+def db_set_show_points_to_one():
+    conn, cursor = connect_to_database()
+    try:
+        # Устанавливаем значение переменной ShowPoints в 1
+        cursor.execute("UPDATE Settings SET value = ? WHERE setting_name = ?", (1, 'ShowPoints'))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Ошибка при установке значения переменной ShowPoints в 1: {e}")
+    finally:
+        conn.close()
+
+def db_set_show_points_to_zero():
+    conn, cursor = connect_to_database()
+    try:
+        # Устанавливаем значение переменной ShowPoints в 0
+        cursor.execute("UPDATE Settings SET value = ? WHERE setting_name = ?", (0, 'ShowPoints'))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Ошибка при установке значения переменной ShowPoints в 0: {e}")
+    finally:
+        conn.close()
 
 def db_delete_last_record_from_school_scores(username):
     # Подключаемся к базе данных SQLite
@@ -113,7 +179,7 @@ def db_delete_last_record_from_school_scores(username):
 
 def db_get_character_name_by_player_name(player_name):
     connection, cursor = connect_to_database()
-    cursor.execute("SELECT character_name FROM prepodavali WHERE telegram_username = ?", (player_name,))
+    cursor.execute("SELECT character_name FROM prepodavali WHERE telegram_name = ?", (player_name,))
     character_name = cursor.fetchone()[0]
 
     return character_name
@@ -125,7 +191,26 @@ def db_get_teacher_name_by_telegram_name(player_name):
 
     return character_name
 
+def db_get_teacher_role_by_telegram_name(player_name):
+    connection, cursor = connect_to_database()
+    cursor.execute("SELECT role_name FROM players WHERE telegram_username = ?", (player_name,))
+    role_name = cursor.fetchone()[0]
 
+    return role_name
+
+def db_get_teacher_from_value_by_role(role_name):
+    connection, cursor = connect_to_database()
+    cursor.execute("SELECT from_value FROM roles WHERE role_name = ?", (role_name,))
+    from_value = cursor.fetchone()[0]
+
+    return from_value
+
+def db_get_teacher_to_value_by_role(role_name):
+    connection, cursor = connect_to_database()
+    cursor.execute("SELECT to_value FROM roles WHERE role_name = ?", (role_name,))
+    to_value = cursor.fetchone()[0]
+
+    return to_value
 
 def db_get_catalog():
 

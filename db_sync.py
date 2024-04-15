@@ -56,17 +56,21 @@ def sync_google_sheet_to_school_scores():
     # Открываем нужный лист
     spreadsheet_id, credentials = google_sheet_connect_points()
     gc = gspread.authorize(credentials)
-    sheet = gc.open_by_key(spreadsheet_id).worksheet('ШкольныеБаллы')
+    sheet_name = 'ШкольныеБаллы'
+    worksheet = gc.open_by_key(spreadsheet_id).worksheet(sheet_name)
 
-    # Получаем текущие данные из Google Документов
-    data_from_sheet = sheet.get_all_records()
+    # Получаем данные из Google Документов в виде списка списков
+    data_from_sheet = worksheet.get_all_values()
+
 
     # Подключаемся к БД и получаем данные
     connection, cursor = connect_to_database()
-
+    
     # Обновляем данные в базе данных на основе данных из Google Документа
     for row in data_from_sheet:
-        id_value = row[0]
+  
+
+        id_value = int(row[0])
         date_time = row[1]
         house = row[2]
         score = row[3]
@@ -82,6 +86,7 @@ def sync_google_sheet_to_school_scores():
         """
         cursor.execute(update_query, (date_time, house, score, reason, teacher_name, telegram_username, id_value))
         connection.commit()
+
 
     connection.close()
 
@@ -183,8 +188,8 @@ def sync_teachers_from_google_sheet():
     query = "SELECT telegram_name, character_name FROM prepodavali"
     df_all_from_table = pd.read_sql_query(query, connection)
 
-    if check_matching_rows(df_all_from_table, df_all_from_doc):
-        return None
+    #if check_matching_rows(df_all_from_table, df_all_from_doc):
+        #return None
     cursor.execute("DELETE FROM prepodavali")
     connection.commit()
     
@@ -223,6 +228,33 @@ def sync_players_from_google_sheet():
     connection.close()
 
     return None
+
+def sync_google_sheet_to_roles():
+    # Подключаемся к Google Документам
+    spreadsheet_id, credentials = google_sheet_connect_req()
+    gc = gspread.authorize(credentials)
+    sheet_name = 'РолиБаллы'  # Название листа с данными
+    worksheet = gc.open_by_key(spreadsheet_id).worksheet(sheet_name)
+
+    # Получаем данные из Google Документов в виде списка списков
+    data_from_sheet = worksheet.get_all_values()
+
+    # Подключаемся к БД SQLite
+    connection, cursor = db_sqlite.connect_to_database()
+
+    # Очищаем таблицу перед записью новых данных
+    cursor.execute("DELETE FROM roles")
+    connection.commit()
+
+    # Вставляем данные из Google Документов в таблицу
+    for row in data_from_sheet[1:]:  # Пропускаем заголовки, начинаем с индекса 1
+        cursor.execute("""
+        INSERT INTO roles (role_name, from_value, to_value)
+        VALUES (?, ?, ?)
+        """, (row[0], int(row[1]), int(row[2])))
+        connection.commit()
+
+    connection.close()
 
 #### здесь надо обновлять и дописывать, пока её не трогаем ####
 def sync_requests_between_db_and_sheet():
@@ -279,6 +311,7 @@ def start_sync():
     now = datetime.now()
     now = now.strftime("%Y.%m.%d %H:%M")
 
+    sync_google_sheet_to_roles()
     sync_registrations_to_google_sheet()
     sync_google_sheet_to_school_scores()
     sync_categories_from_google_sheet()
