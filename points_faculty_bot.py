@@ -236,11 +236,11 @@ def grif_score(message):
 
     try:
         # Разбиваем текст сообщения на части по пробелу
-        command_parts = message.text.split()
-        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        command_parts = message.text.split(' ')
+        chat_name = db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username)
         
         # Проверяем, что команда имеет три части: /команда число сообщение
-        if len(command_parts) == 3:
+        if len(command_parts) >= 3:
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
             if check_num_mark(message, number):
@@ -248,14 +248,14 @@ def grif_score(message):
                 main_func(message)
                 return None
 
-            text = command_parts[2]            
+            text = ' '.join(command_parts[2:])        
 
             print(number, text, chat_name)
 
             mark_write('Гриффиндор', number, text, chat_name, message.from_user.username)        
             # Отправляем ответное сообщение в чат
             bot.reply_to(message, f"Число баллов добавлено Гриффиндору: {number}\nСообщение: {text}")
-        elif len(command_parts) == 2 and command_parts[1].isdigit():
+        elif len(command_parts) == 2 and validate_any_int(command_parts[1]):
             number = int(command_parts[1])
             if check_num_mark(message, number):
                 message.text = "Вернуться в главное меню"
@@ -275,14 +275,14 @@ def grif_score(message):
 def slyze_score(message):
     try:
         # Разбиваем текст сообщения на части по пробелу
-        command_parts = message.text.split()
-        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        command_parts = message.text.split(' ')
+        chat_name = db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username)
         
         # Проверяем, что команда имеет три части: /команда число сообщение
-        if len(command_parts) == 3:
+        if len(command_parts) >= 3:
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
-            text = command_parts[2]
+            text = ' '.join(command_parts[2:])
             if check_num_mark(message, number):
                 message.text = "Вернуться в главное меню"
                 main_func(message)
@@ -293,7 +293,7 @@ def slyze_score(message):
             mark_write('Слизерин', number, text, chat_name, message.from_user.username)        
             # Отправляем ответное сообщение в чат
             bot.reply_to(message, f"Число баллов добавлено Слизерин: {number}\nСообщение: {text}")
-        elif len(command_parts) == 2 and command_parts[1].isdigit():
+        elif len(command_parts) == 2 and validate_any_int(command_parts[1]):
             number = int(command_parts[1])
             if check_num_mark(message, number):
                 message.text = "Вернуться в главное меню"
@@ -314,14 +314,14 @@ def slyze_score(message):
 def rave_score(message):
     try:
         # Разбиваем текст сообщения на части по пробелу
-        command_parts = message.text.split()
-        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        command_parts = message.text.split(' ')
+        chat_name = db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username)
         
         # Проверяем, что команда имеет три части: /команда число сообщение
-        if len(command_parts) == 3:
+        if len(command_parts) >= 3:
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
-            text = command_parts[2]
+            text = ' '.join(command_parts[2:])
             if check_num_mark(message, number):
                 message.text = "Вернуться в главное меню"
                 main_func(message)
@@ -332,7 +332,7 @@ def rave_score(message):
             mark_write('Рейвенкло', number, text, chat_name, message.from_user.username)        
             # Отправляем ответное сообщение в чат
             bot.reply_to(message, f"Число баллов добавлено Рейвенкло: {number}\nСообщение: {text}")
-        elif len(command_parts) == 2 and command_parts[1].isdigit():
+        elif len(command_parts) == 2 and validate_any_int(command_parts[1]):
             number = int(command_parts[1])
             if check_num_mark(message, number):
                 message.text = "Вернуться в главное меню"
@@ -352,14 +352,14 @@ def rave_score(message):
 def huff_score(message):
     try:
         # Разбиваем текст сообщения на части по пробелу
-        command_parts = message.text.split()
-        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        command_parts = message.text.split(' ')
+        chat_name = db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username)
         
         # Проверяем, что команда имеет три части: /команда число сообщение
-        if len(command_parts) == 3:
+        if len(command_parts) >= 3:
             # Получаем число и сообщение из частей команды
             number = int(command_parts[1])
-            text = command_parts[2]
+            text = ' '.join(command_parts[2:])
             if check_num_mark(message, number):
                 message.text = "Вернуться в главное меню"
                 main_func(message)
@@ -370,14 +370,14 @@ def huff_score(message):
             mark_write('Хаффлпафф', number, text, chat_name, message.from_user.username)        
             # Отправляем ответное сообщение в чат
             bot.reply_to(message, f"Число баллов добавлено Хаффлпафф: {number}\nСообщение: {text}")
-        elif len(command_parts) == 2 and command_parts[1].isdigit():
+        elif len(command_parts) == 2 and validate_any_int(command_parts[1]):
             number = int(command_parts[1])
             if check_num_mark(message, number):
                 message.text = "Вернуться в главное меню"
                 main_func(message)
                 return None
-            mark_write('Рейвенкло', number, 'ПУСТО', chat_name, message.from_user.username) 
-            bot.reply_to(message, f"Число баллов добавлено Рейвенкло: {number}\nСообщения нет")
+            mark_write('Хаффлпафф', number, 'ПУСТО', chat_name, message.from_user.username) 
+            bot.reply_to(message, f"Число баллов добавлено Хаффлпафф: {number}\nСообщения нет")
         else:
             bot.reply_to(message, "Неверный формат команды. Используйте /команда число сообщение")
     except ValueError:
@@ -426,22 +426,22 @@ def main_func(message):
                          reply_markup=markup_main)
     elif (message.text == "Гриффиндор"):
         faculty = "Гриффиндор"
-        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        chat_name = db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username)
         bot.send_message(message.chat.id, text="Если вы хотите добавить баллы выбранному факультету, то знак перед числом ставить не требуется. Если вы хотите снять баллы, то поставьте знак -".format(message.from_user), reply_markup=markup_back) 
         bot.register_next_step_handler(message, mark_req_step_three, faculty, chat_name)
     elif (message.text == "Хаффлпафф"):
         faculty = "Хаффлпафф"
-        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        chat_name = db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username)
         bot.send_message(message.chat.id, text="Если вы хотите добавить баллы выбранному факультету, то знак перед числом ставить не требуется. Если вы хотите снять баллы, то поставьте знак -".format(message.from_user), reply_markup=markup_back) 
         bot.register_next_step_handler(message, mark_req_step_three, faculty, chat_name)
     elif (message.text == "Слизерин"):
         faculty = "Слизерин"
-        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+        chat_name = db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username)
         bot.send_message(message.chat.id, text="Если вы хотите добавить баллы выбранному факультету, то знак перед числом ставить не требуется. Если вы хотите снять баллы, то поставьте знак -".format(message.from_user), reply_markup=markup_back) 
         bot.register_next_step_handler(message, mark_req_step_three, faculty, chat_name)
-    elif (message.text == "Слизерин"):
-        faculty = "Слизерин"
-        chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+    elif (message.text == "Рейвенкло"):
+        faculty = "Рейвенкло"
+        chat_name = db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username)
         bot.send_message(message.chat.id, text="Если вы хотите добавить баллы выбранному факультету, то знак перед числом ставить не требуется. Если вы хотите снять баллы, то поставьте знак -".format(message.from_user), reply_markup=markup_back) 
         bot.register_next_step_handler(message, mark_req_step_three, faculty, chat_name)
     
@@ -461,12 +461,12 @@ def main_func(message):
         btn4 = types.KeyboardButton("Вернуться в главное меню")
         markup.add(btn4)
         last_five_marks = marks_read()
-        sorted_data = sorted(last_five_marks, key=lambda x: int(x[3]))
+        #sorted_data = sorted(last_five_marks, key=lambda x: int(x[3]))
         #sorted_data = sorted(last_five_marks, key=lambda x: int(x[3]) if x[3].isdigit() else float('inf'))
-        output = "Последние пять изменений баллов:\n"
-        for item in sorted_data:
-            output += f"Номер изменения сначала года: {item[0]}, Когда: {item[1]}, Факультет: {item[2]}, Какие изменения: {item[3]}, За что: {item[4]}, Кто: {item[5]}\n"
-        bot.send_message(message.chat.id, text=f"{output}".format(message.from_user), reply_markup=markup)
+        #output = "Последние пять изменений баллов:\n"
+        #for item in sorted_data:
+           # output += f"Номер изменения сначала года: {item[0]}, Когда: {item[1]}, Факультет: {item[2]}, Какие изменения: {item[3]}, За что: {item[4]}, Кто: {item[5]}\n"
+        bot.send_message(message.chat.id, text=f"{last_five_marks}".format(message.from_user), reply_markup=markup)
         url_doc = 'https://docs.google.com/spreadsheets/d/1RSlOpb93ngc3Iwmk2L335xokX95HSVsztUBsFmCHLNo/edit?usp=sharing'
         bot.send_message(message.chat.id, text=f"Более подробно смотри в документе {url_doc}".format(message.from_user), reply_markup=markup)
 
@@ -486,7 +486,7 @@ def mark_req_start(message):
         return None
 
     faculty = message.text
-    chat_name = db_sqlite.db_get_character_name_by_player_name(message.from_user.username)
+    chat_name = db_sqlite.db_get_teacher_name_by_telegram_name(message.from_user.username)
     markup_req = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn = types.KeyboardButton("Вернуться в главное меню")
     markup_req.add(btn)

@@ -57,9 +57,9 @@ def validate_telegram_id(telegram_id):
 
 def validate_any_int(idd):
     try:
-        idd = int(idd)
-        return True
-    except:
+        int_value = int(idd)
+        return -1000 <= int_value <= 1000
+    except ValueError:
         return False
 
 
@@ -323,6 +323,16 @@ def marks_read_from_doc():
     return last_five_rows
 
 
+def format_row(row):
+    # Форматируем строку данных
+    formatted_row = f"*Номер изменения с начала года:* {row[0]}\n" \
+                    f"*Когда:* {row[1]}\n" \
+                    f"*Факультет:* {row[2]}\n" \
+                    f"*Какие изменения:* {row[3]}\n" \
+                    f"*За что:* {row[4]}\n" \
+                    f"*Кто:* {row[5]}"
+    return formatted_row
+
 def marks_read():
     # Подключаемся к БД и получаем данные
     connection, cursor = db_sqlite.connect_to_database()
@@ -331,16 +341,18 @@ def marks_read():
     cursor.execute("SELECT * FROM school_scores ORDER BY id DESC LIMIT 5")  # Выбираем последние пять записей
     rows = cursor.fetchall()
 
-    # Формируем данные аналогично функции, чтобы вернуть последние пять записей
-    last_five_rows = []
+    # Формируем отформатированные данные
+    formatted_rows = []
     for row in rows:
-        row_data = list(row[:6]) + list(row[7:])  # Пропускаем столбец с ID
-        last_five_rows.append(row_data)
+        formatted_rows.append(format_row(row))
 
     connection.close()
 
-    return last_five_rows
+    # Создаем сообщение с различными стилями форматирования
+    message = "*Последние пять изменений баллов:*\n\n"
+    message += "\n\n---\n\n".join(formatted_rows)  # Объединяем строки в одну строку с разделителями
 
+    return message
 
 def marks_all_from_doc():
 
