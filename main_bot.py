@@ -95,10 +95,17 @@ def is_registered_user(user, message):
 @bot.message_handler(commands=['start'], func= is_private)
 def handle_start_other(message):
     chat = int(message.chat.id)
+    chat_name = message.from_user.username
     print(f'Новый пользователь {chat}')
     bot.reply_to(message, 'Привет!\nЭтот бот отвечает только на личные сообщения и требует регистрации.\n\nВаша регистрация пройдет автоматически, если ваш telegram аккаунт добавлен в специальный файл.\nДля регистрации вручную во время семестра обратитесь к ОТ.')
 
 ### сначала проверяем по локальной БД ###
+
+    try:
+        if db_sqlite.db_get_character_name_by_player_name(chat_name):
+            db_sqlite.db_insert_user_into_db(chat)
+    except:
+        pass
 
     try:
         if db_check_registration_in_db(chat):
@@ -111,6 +118,7 @@ def handle_start_other(message):
             return None
     except:
         pass
+
 
     if is_private_and_unregistered(message):
         #### задаем состояние чата ####

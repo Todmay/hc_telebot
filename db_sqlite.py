@@ -245,6 +245,27 @@ def db_insert_user_into_db(chat_id):
     connection.commit()
     connection.close()
 
+
+def db_clear_table(table_name = 'players'):
+    try:
+        conn, cursor = connect_to_database()
+        # Формируем SQL-запрос для удаления всех записей из таблицы
+        sql_query = f"DELETE FROM {table_name};"
+
+        # Выполняем SQL-запрос
+        cursor.execute(sql_query)
+
+        # Фиксируем изменения и закрываем соединение
+        conn.commit()
+        conn.close()
+
+        print(f"Таблица {table_name} успешно очищена.")
+    except sqlite3.Error as e:
+        print(f"Ошибка при очистке таблицы {table_name}: {e}")
+    finally:
+        if conn:
+            conn.close()
+
 #############
 
 #запуск на создание запускаем один раз, потом просто используем функции из данного файла
@@ -253,4 +274,6 @@ def db_insert_user_into_db(chat_id):
 
 
 # Вызов функции для создания таблицы пользователей
-create_all_table()
+#create_all_table()
+
+#db_clear_table()
